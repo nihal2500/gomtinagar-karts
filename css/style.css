@@ -164,3 +164,62 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 800px) {
   .grid-2 { grid-template-columns: 1fr; }
 }
+
+/* ---------- Play page ---------- */
+.hidden { display: none; }
+
+button.btn { font-family: inherit; cursor: pointer; }
+
+.text-input {
+  width: 100%;
+  max-width: 420px;
+  padding: 14px 18px;
+  font-family: inherit;
+  font-size: 1.1rem;
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  background: var(--bg);
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.text-input:focus { outline: 3px solid var(--red); outline-offset: 2px; }
+
+.choice-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+.choice { cursor: pointer; }
+.choice input { position: absolute; opacity: 0; pointer-events: none; }
+
+.choice-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--bg);
+  font-weight: 700;
+  transition: transform 0.15s, background 0.15s;
+}
+.choice:hover .choice-body { transform: translateY(-2px); }
+.choice input:checked + .choice-body { background: var(--ink); color: var(--bg); box-shadow: 0 4px 0 var(--red); }
+.choice input:focus-visible + .choice-body { outline: 3px solid var(--red); outline-offset: 2px; }
+
+.choice-text { flex-direction: column; align-items: flex-start; gap: 0; border-radius: 22px; min-width: 190px; }
+.choice-text small { font-weight: 400; opacity: 0.8; }
+
+.swatch { display: inline-block; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--ink); }
+.choice input:checked + .choice-body .swatch { border-color: var(--bg); }
+
+.summary { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 20px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border: 2px solid var(--ink); border-radius: 999px; background: #fff; font-weight: 700; }
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 2px solid var(--ink);
+  border-radius: 28px;
+  box-shadow: 8px 8px 0 var(--ink);
+  background: #fff;
+  margin-bottom: 18px;
+}
+#match .btn { margin-top: 10px; }

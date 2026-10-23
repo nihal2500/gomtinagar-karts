@@ -27,10 +27,75 @@
   </header>
 
   <main class="page">
-    <p class="eyebrow">Coming soon</p>
-    <h1>The track is still under construction</h1>
-    <p class="lead">The game is not playable yet. We are building it step by step. Check the How to Play page to see what is coming.</p>
-    <a class="btn btn-primary" href="how-to-play.html">How to Play</a>
+
+    <!-- Screen 1: set up your match -->
+    <section id="setup">
+      <p class="eyebrow">Get ready</p>
+      <h1>Set up your match</h1>
+      <p class="lead">Pick a name, a kart color and how tough the bots should be.</p>
+
+      <div class="panel">
+        <h2>1. Your name</h2>
+        <input id="player-name" class="text-input" type="text" maxlength="12" placeholder="Enter your name" autocomplete="off">
+        <p class="note">Up to 12 characters. Leave it empty to play as "Player".</p>
+      </div>
+
+      <div class="panel">
+        <h2>2. Kart color</h2>
+        <div class="choice-row">
+          <label class="choice">
+            <input type="radio" name="kart" value="red" checked>
+            <span class="choice-body"><span class="swatch" style="background:#d71921"></span>Signal Red</span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="kart" value="graphite">
+            <span class="choice-body"><span class="swatch" style="background:#3a3a3a"></span>Graphite</span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="kart" value="sky">
+            <span class="choice-body"><span class="swatch" style="background:#5aa9f0"></span>Sky Blue</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>3. Bot difficulty</h2>
+        <div class="choice-row">
+          <label class="choice">
+            <input type="radio" name="difficulty" value="easy">
+            <span class="choice-body choice-text"><strong>Easy</strong><small>Slow bots that miss a lot</small></span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="difficulty" value="medium" checked>
+            <span class="choice-body choice-text"><strong>Medium</strong><small>A fair, balanced fight</small></span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="difficulty" value="hard">
+            <span class="choice-body choice-text"><strong>Hard</strong><small>Fast bots that fire often</small></span>
+          </label>
+        </div>
+      </div>
+
+      <button id="start-btn" class="btn btn-primary" type="button">Start Match</button>
+    </section>
+
+    <!-- Screen 2: match ready (the arena arrives in Stage 5) -->
+    <section id="match" class="hidden">
+      <p class="eyebrow">Match ready</p>
+      <h1>Get set, <span id="match-name"></span></h1>
+
+      <div class="summary">
+        <span class="chip"><span class="swatch" id="match-swatch"></span><span id="match-kart"></span></span>
+        <span class="chip" id="match-difficulty"></span>
+        <span class="chip">Lives: 3</span>
+      </div>
+
+      <canvas id="game-canvas" width="900" height="520"></canvas>
+      <p class="note">The arena and driving are built in the next stage. For now this screen only shows your chosen settings.</p>
+
+      <button id="back-btn" class="btn btn-ghost" type="button">Back to setup</button>
+    </section>
+
   </main>
 
   <footer class="site-footer">
@@ -38,5 +103,6 @@
     <p class="footer-note">A college project · Best played on a computer with a keyboard</p>
   </footer>
 
+  <script src="js/play.js"></script>
 </body>
 </html>
