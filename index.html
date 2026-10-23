@@ -4,9 +4,87 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gomtinagar Karts</title>
+  <meta name="description" content="Gomtinagar Karts: a fun kart battle game. Grab power-ups and be the last kart standing.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@100..900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
 </head>
-<body style="font-family: Arial, sans-serif; background: #f2f2ef; text-align: center; padding-top: 80px;">
-  <h1 style="color: #d71921;">Gomtinagar Karts</h1>
-  <p>My website is alive! 🏁</p>
+<body>
+
+  <header class="site-header">
+    <nav class="nav">
+      <a class="brand" href="index.html">
+        <span class="brand-dot"></span>
+        <span class="brand-name">Gomtinagar Karts</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="play.html">Play</a></li>
+        <li><a href="how-to-play.html">How to Play</a></li>
+        <li><a href="about.html">About</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-text">
+        <p class="eyebrow">Kart battle · Solo · Free</p>
+        <h1>Gomtinagar<br>Karts</h1>
+        <p class="lead">
+          Zip around the arena, grab power-ups and be the last kart standing
+          against the bots. No sign-up, no downloads.
+        </p>
+        <div class="hero-buttons">
+          <a class="btn btn-primary" href="play.html">Play Now</a>
+          <a class="btn btn-ghost" href="how-to-play.html">How to Play</a>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="widget">
+          <svg class="kart" viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" aria-label="A red kart">
+            <ellipse cx="100" cy="122" rx="70" ry="10" fill="#000" opacity="0.12"/>
+            <rect x="28" y="88" width="30" height="26" rx="8" fill="#101010"/>
+            <rect x="142" y="88" width="30" height="26" rx="8" fill="#101010"/>
+            <rect x="34" y="30" width="30" height="26" rx="8" fill="#101010"/>
+            <rect x="136" y="30" width="30" height="26" rx="8" fill="#101010"/>
+            <rect x="40" y="38" width="120" height="72" rx="26" fill="#d71921"/>
+            <rect x="40" y="38" width="120" height="72" rx="26" fill="none" stroke="#101010" stroke-width="3"/>
+            <circle cx="100" cy="72" r="20" fill="#f2f1ee" stroke="#101010" stroke-width="3"/>
+            <circle cx="100" cy="72" r="6" fill="#101010"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="features">
+      <h2>Quick, easy, <span class="red">fun</span></h2>
+      <div class="cards">
+        <article class="card">
+          <p class="card-number">04</p>
+          <h3>Power-Ups</h3>
+          <p>Rocket, Mine, Shield and Speed Boost. Pick them up around the arena and use them wisely.</p>
+        </article>
+        <article class="card card-yellow">
+          <p class="card-number">03</p>
+          <h3>Bot Levels</h3>
+          <p>Choose Easy, Medium or Hard. Start relaxed, then challenge yourself.</p>
+        </article>
+        <article class="card card-sky">
+          <p class="card-number">03</p>
+          <h3>Lives</h3>
+          <p>Everyone gets three lives. The last kart standing wins the round.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p class="footer-brand">Gomtinagar Karts</p>
+    <p class="footer-note">A college project · Best played on a computer with a keyboard</p>
+  </footer>
+
 </body>
 </html>
