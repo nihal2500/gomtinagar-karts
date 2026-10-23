@@ -134,3 +134,33 @@ a { color: inherit; text-decoration: none; }
   .hero { grid-template-columns: 1fr; padding-top: 40px; }
   .cards { grid-template-columns: 1fr; }
 }
+
+/* ---------- Inner pages (How to Play, About, Play) ---------- */
+.page { max-width: 900px; margin: 0 auto; padding: 60px 24px 70px; }
+.page h1 { font-family: "Doto", monospace; font-weight: 900; font-size: clamp(2.4rem, 6vw, 4rem); line-height: 1.05; margin: 8px 0 16px; }
+.page .lead { margin-bottom: 30px; }
+
+.panel { background: #fff; border: 2px solid var(--ink); border-radius: 28px; padding: 26px; margin-bottom: 20px; }
+.panel h2 { font-family: "Doto", monospace; font-weight: 900; font-size: 1.7rem; margin-bottom: 8px; }
+.note { color: var(--muted); margin-bottom: 12px; }
+
+.controls { list-style: none; display: grid; gap: 12px; }
+.controls li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.controls li > span:last-child { margin-left: 8px; color: var(--muted); }
+.key { display: inline-block; min-width: 42px; text-align: center; padding: 6px 12px; border: 2px solid var(--ink); border-radius: 12px; background: var(--bg); box-shadow: 0 3px 0 var(--ink); font-weight: 700; }
+.key-wide { min-width: 120px; }
+
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 10px; }
+.mini { border: 2px solid var(--ink); border-radius: 20px; padding: 16px; background: var(--bg); }
+.mini:nth-child(1) { background: #ffd0d2; }
+.mini:nth-child(2) { background: var(--yellow); }
+.mini:nth-child(3) { background: var(--sky); }
+.mini h3 { margin-bottom: 4px; }
+
+.plain-list { list-style: none; display: grid; gap: 8px; }
+.plain-list li { padding-left: 22px; position: relative; }
+.plain-list li::before { content: ""; position: absolute; left: 0; top: 0.6em; width: 9px; height: 9px; border-radius: 50%; background: var(--red); }
+
+@media (max-width: 800px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
