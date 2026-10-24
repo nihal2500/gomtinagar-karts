@@ -20,6 +20,56 @@ const matchScreen = document.getElementById("match");
 const nameInput = document.getElementById("player-name");
 const startButton = document.getElementById("start-btn");
 const backButton = document.getElementById("back-btn");
+const gameWrap = document.getElementById("game-wrap");
+const fullscreenButton = document.getElementById("fullscreen-btn");
+
+// ---------- Fullscreen ----------
+function isFullscreen() {
+  return document.fullscreenElement || document.webkitFullscreenElement;
+}
+
+function enterFullscreen() {
+  if (gameWrap.requestFullscreen) {
+    gameWrap.requestFullscreen();
+  } else if (gameWrap.webkitRequestFullscreen) {
+    gameWrap.webkitRequestFullscreen();
+  }
+}
+
+function exitFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.webkitExitFullscreen) {
+    document.webkitExitFullscreen();
+  }
+}
+
+function toggleFullscreen() {
+  if (isFullscreen()) {
+    exitFullscreen();
+  } else {
+    enterFullscreen();
+  }
+}
+
+function updateFullscreenButton() {
+  fullscreenButton.textContent = isFullscreen() ? "Exit Fullscreen" : "Fullscreen";
+}
+
+fullscreenButton.addEventListener("click", function () {
+  toggleFullscreen();
+  fullscreenButton.blur(); // so the Space key never "presses" this button
+});
+
+document.addEventListener("fullscreenchange", updateFullscreenButton);
+document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
+
+// The F key also toggles fullscreen while a match is on screen.
+window.addEventListener("keydown", function (e) {
+  if (e.code === "KeyF" && !e.repeat && !matchScreen.classList.contains("hidden")) {
+    toggleFullscreen();
+  }
+});
 
 // ---------- What happens when the player clicks Start Match ----------
 startButton.addEventListener("click", function () {
@@ -48,6 +98,9 @@ startButton.addEventListener("click", function () {
 
 // ---------- Back to setup ----------
 backButton.addEventListener("click", function () {
+  if (isFullscreen()) {
+    exitFullscreen();
+  }
   Game.stop();
   matchScreen.classList.add("hidden");
   setupScreen.classList.remove("hidden");

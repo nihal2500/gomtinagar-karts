@@ -223,3 +223,60 @@ button.btn { font-family: inherit; cursor: pointer; }
   margin-bottom: 18px;
 }
 #match .btn { margin-top: 10px; }
+
+/* ---------- Fullscreen game ---------- */
+.game-wrap { position: relative; margin-bottom: 18px; }
+.game-wrap #game-canvas { margin-bottom: 0; }
+
+.fs-btn {
+  position: absolute;
+  right: 16px;
+  top: 9px;
+  padding: 8px 18px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.92);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0.9;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.fs-btn:hover { opacity: 1; transform: translateY(-2px); }
+
+.game-wrap:fullscreen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+}
+.game-wrap:fullscreen #game-canvas {
+  width: min(100vw, calc(100vh * 900 / 520));
+  height: auto;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Same rules for Safari */
+.game-wrap:-webkit-full-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+}
+.game-wrap:-webkit-full-screen #game-canvas {
+  width: min(100vw, calc(100vh * 900 / 520));
+  height: auto;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
