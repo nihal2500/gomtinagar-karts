@@ -1,7 +1,7 @@
 // =====================================================
-//  Gomtinagar Karts: game engine (Stage 6)
-//  Arena, 2.5D drawing, driving, power-ups and sounds.
-//  Bots and real lives come in Stage 7.
+//  Gomtinagar Karts: game engine (Stage 7)
+//  Arena, 2.5D drawing, driving, health, power-ups, sounds,
+//  bots, lives, win/lose screens and a kill feed.
 // =====================================================
 
 // ---------- Sound effects (made with code, no sound files needed) ----------
@@ -81,6 +81,10 @@ const Sfx = (function () {
       noise(0.5, 0.45, 1200);
       tone(140, 40, 0.4, "sine", 0.35);
     },
+    hit: function () {
+      noise(0.2, 0.3, 1800);
+      tone(200, 70, 0.18, "square", 0.15);
+    },
     mine: function () {
       tone(300, 150, 0.12, "square", 0.14);
       tone(200, 100, 0.1, "square", 0.12, 0.1);
@@ -93,9 +97,30 @@ const Sfx = (function () {
       tone(900, 300, 0.15, "triangle", 0.2);
       noise(0.15, 0.15, 3000);
     },
-    boost: function () {
-      noise(0.5, 0.2, 4000);
-      tone(200, 800, 0.5, "sawtooth", 0.1);
+    beast: function () {
+      tone(110, 60, 0.6, "sawtooth", 0.2);
+      tone(220, 80, 0.5, "square", 0.08, 0.05);
+      noise(0.4, 0.15, 800);
+    },
+    eat: function () {
+      noise(0.25, 0.35, 1800);
+      tone(160, 50, 0.25, "square", 0.2);
+      tone(90, 40, 0.2, "sawtooth", 0.2, 0.1);
+    },
+    tick: function () {
+      tone(520, 520, 0.12, "square", 0.12);
+    },
+    go: function () {
+      tone(880, 1320, 0.3, "square", 0.15);
+    },
+    win: function () {
+      tone(523, 523, 0.15, "square", 0.12);
+      tone(659, 659, 0.15, "square", 0.12, 0.15);
+      tone(784, 784, 0.15, "square", 0.12, 0.3);
+      tone(1047, 1047, 0.4, "square", 0.12, 0.45);
+    },
+    lose: function () {
+      tone(400, 100, 0.7, "sawtooth", 0.15);
     }
   };
 })();
@@ -114,6 +139,18 @@ const Game = (function () {
   const TAU = Math.PI * 2;
   let scale = 1;
 
+  // ---------- Colors you can change ----------
+  const BARRIER_COLOR = "#d71921";   // the single color of the arena barriers
+  const BARRIER_DARK = "#8f0e14";    // a darker shade of the same color (edges and front)
+
+  // Power-up boxes: a red top plus a second color on the front.
+  // Each box uses the next style in this list.
+  const BOX_STYLES = [
+    { top: "#d71921", front: "#ff8a1f", ring: "255, 138, 31" },   // red + orange
+    { top: "#d71921", front: "#2ea36b", ring: "46, 163, 107" },   // red + green
+    { top: "#d71921", front: "#ffd23f", ring: "255, 210, 63" }    // red + yellow
+  ];
+
   // ---------- The arena ----------
   const ARENA = { x: 50, y: 66, w: 800, h: 400 };
   const WALL = 14;
@@ -122,59 +159,109 @@ const Game = (function () {
 
   // Solid blocks. "hgt" is how tall they look.
   const OBSTACLES = [
-    { x: 415, y: 231, w: 70, h: 70, hgt: 26, top: "#d71921", front: "#8f0e14" },
-    { x: 210, y: 146, w: 60, h: 60, hgt: 20, top: "#a9d4ff", front: "#6fa8dc" },
-    { x: 630, y: 146, w: 60, h: 60, hgt: 20, top: "#ffe27a", front: "#d9b43a" },
-    { x: 210, y: 326, w: 60, h: 60, hgt: 20, top: "#ffe27a", front: "#d9b43a" },
-    { x: 630, y: 326, w: 60, h: 60, hgt: 20, top: "#a9d4ff", front: "#6fa8dc" }
+    { x: 422, y: 238, w: 56, h: 56, hgt: 22, top: "#d71921", front: "#8f0e14" },
+    { x: 216, y: 152, w: 48, h: 48, hgt: 17, top: "#a9d4ff", front: "#6fa8dc" },
+    { x: 636, y: 152, w: 48, h: 48, hgt: 17, top: "#ffe27a", front: "#d9b43a" },
+    { x: 216, y: 332, w: 48, h: 48, hgt: 17, top: "#ffe27a", front: "#d9b43a" },
+    { x: 636, y: 332, w: 48, h: 48, hgt: 17, top: "#a9d4ff", front: "#6fa8dc" }
   ];
 
-  // Where the power-up boxes sit
+  // Where the power-up boxes sit (only a few, so power-ups feel special)
   const BOX_SPOTS = [
     { x: 450, y: 126 }, { x: 450, y: 406 },
-    { x: 140, y: 126 }, { x: 140, y: 406 },
-    { x: 760, y: 126 }, { x: 760, y: 406 },
-    { x: 330, y: 266 }, { x: 570, y: 266 }
+    { x: 330, y: 266 }, { x: 570, y: 266 },
+    { x: 760, y: 266 }
   ];
-  const BOX_RESPAWN_SECONDS = 8;
+  const BOX_RESPAWN_SECONDS = 7;
 
-  const POWERUPS = ["rocket", "mine", "shield", "boost"];
-  const POWERUP_NAMES = { rocket: "ROCKET", mine: "MINE", shield: "SHIELD", boost: "BOOST" };
+  // Where karts come back after being knocked out
+  const SPAWN_SPOTS = [
+    { x: 100, y: 110 }, { x: 800, y: 110 },
+    { x: 100, y: 422 }, { x: 800, y: 422 }
+  ];
 
-  // ---------- Driving feel (you can tweak these later) ----------
+  // Where the three bots start, their names and kart colors
+  const BOT_STARTS = [
+    { x: 790, y: 110, angle: Math.PI },
+    { x: 790, y: 422, angle: Math.PI },
+    { x: 450, y: 92, angle: Math.PI / 2 }
+  ];
+  const BOT_NAMES = ["Zippy", "Bolt", "Nova"];
+  const BOT_COLORS = ["#d71921", "#3a3a3a", "#5aa9f0", "#f2a900", "#2ea36b"];
+
+  // How the bots behave on each difficulty
+  //  speed/turn: how fast they drive and steer compared with you
+  //  aim: how exactly they must aim before firing (smaller = better)
+  //  aimNoise: how much they wobble while chasing
+  //  reaction: seconds they wait before using a power-up
+  const DIFFICULTY = {
+    easy:   { speed: 0.72, turn: 0.80, aim: 0.38, aimNoise: 0.50, reaction: 1.4 },
+    medium: { speed: 0.88, turn: 0.95, aim: 0.22, aimNoise: 0.22, reaction: 0.8 },
+    hard:   { speed: 1.00, turn: 1.10, aim: 0.12, aimNoise: 0.06, reaction: 0.35 }
+  };
+
+  // How likely each power-up is (the numbers are percentages and add up to 100)
+  const POWERUP_WEIGHTS = [
+    { type: "rocket", weight: 34 },
+    { type: "beast",  weight: 30 },
+    { type: "shield", weight: 22 },
+    { type: "mine",   weight: 14 }
+  ];
+  const POWERUP_NAMES = { rocket: "ROCKETS", mine: "MINE", shield: "SHIELD", beast: "BEAST" };
+  const VERBS = { rocket: "rocketed", mine: "mined", beast: "ate" };
+
+  // ---------- Game numbers (you can tweak these later) ----------
   const MAX_SPEED = 4.4;
-  const BOOST_SPEED = 7;
+  const BEAST_SPEED = 5.6;
   const MAX_REVERSE = 1.8;
   const ACCEL = 0.11;
   const BRAKE = 0.22;
   const FRICTION = 0.05;
   const TURN_RATE = 0.05;
+
   const ROCKET_SPEED = 9;
+  const ROCKET_DAMAGE = 34;     // three rockets together = 102 damage
+  const MINE_DAMAGE = 60;
+  const MINE_LIFETIME = 6;      // seconds before a mine disappears
+  const SHIELD_TIME = 6;        // seconds
+  const BEAST_TIME = 5.5;       // seconds
+  const EAT_TIME = 0.55;        // seconds the "eating" takes
+  const MAX_HP = 100;
+  const START_LIVES = 3;
+  const COUNTDOWN_SECONDS = 3;
 
   // ---------- Game state ----------
   let running = false;
   let rafId = null;
   let lastTime = 0;
-  let gameTime = 0;      // seconds since the match started
+  let gameTime = 0;        // seconds since the match started
+  let state = "playing";   // "playing", "won" or "lost"
+  let countdown = 0;       // seconds left before the race starts
+  let goTimer = 0;         // shows "GO!" for a moment
+  let lastTick = 0;
+  let place = 1;
   let settings = null;
   let keys = {};
   let player = null;
-  let karts = [];
+  let karts = [];          // karts still in the match
+  let bots = [];           // all three bots (even after they are out)
   let boxes = [];
   let mines = [];
   let rockets = [];
   let particles = [];
+  let feed = [];
   let staticLayer = null;
 
-  // ---------- Keyboard ----------
+  // ---------- Keyboard and mouse ----------
   const BLOCKED_KEYS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"];
 
   window.addEventListener("keydown", function (e) {
     if (!running) return;
     keys[e.code] = true;
     if (BLOCKED_KEYS.indexOf(e.code) !== -1) e.preventDefault(); // stop the page from scrolling
-    if (e.code === "Space" && !e.repeat) usePowerup(player);
+    if (e.code === "Space" && !e.repeat && state === "playing" && countdown <= 0) usePowerup(player);
     if (e.code === "KeyM" && !e.repeat) Sfx.toggleMute();
+    if (e.code === "Enter" && state !== "playing") restart();
   });
 
   window.addEventListener("keyup", function (e) {
@@ -183,6 +270,20 @@ const Game = (function () {
 
   window.addEventListener("blur", function () {
     keys = {};
+  });
+
+  // The "Play Again" button is drawn on the canvas, so we check clicks ourselves
+  const AGAIN_BUTTON = { x: 340, y: 322, w: 220, h: 54 };
+
+  canvas.addEventListener("click", function (e) {
+    if (!running || state === "playing") return;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (W / rect.width);
+    const y = (e.clientY - rect.top) * (H / rect.height);
+    if (x > AGAIN_BUTTON.x && x < AGAIN_BUTTON.x + AGAIN_BUTTON.w &&
+        y > AGAIN_BUTTON.y && y < AGAIN_BUTTON.y + AGAIN_BUTTON.h) {
+      restart();
+    }
   });
 
   // ---------- Making the picture sharp ----------
@@ -207,6 +308,22 @@ const Game = (function () {
     new ResizeObserver(fitCanvas).observe(canvas);
   }
 
+  // ---------- Small helpers ----------
+  function angleDiff(a, b) {
+    // how far to turn from angle b to reach angle a (between -PI and PI)
+    let d = a - b;
+    while (d > Math.PI) d -= TAU;
+    while (d < -Math.PI) d += TAU;
+    return d;
+  }
+
+  function ordinal(n) {
+    if (n === 1) return "1st";
+    if (n === 2) return "2nd";
+    if (n === 3) return "3rd";
+    return n + "th";
+  }
+
   // ---------- Drawing helpers ----------
   function roundedRect(g, x, y, w, h, r) {
     g.beginPath();
@@ -218,21 +335,18 @@ const Game = (function () {
     g.closePath();
   }
 
-  // A red and white striped barrier, like the edge of a real kart track
-  function stripedBand(g, x, y, w, h, horizontal) {
-    const seg = 28;
-    const len = horizontal ? w : h;
-    for (let i = 0, p = 0; p < len; i++, p += seg) {
-      g.fillStyle = (i % 2 === 0) ? "#d71921" : "#ffffff";
-      const l = Math.min(seg, len - p);
-      if (horizontal) {
-        g.fillRect(x + p, y, l, h);
-      } else {
-        g.fillRect(x, y + p, w, l);
-      }
+  // One solid barrier piece, in the single barrier color
+  function barrier(g, x, y, w, h, horizontal) {
+    g.fillStyle = BARRIER_COLOR;
+    g.fillRect(x, y, w, h);
+    g.fillStyle = "rgba(255, 255, 255, 0.28)";
+    if (horizontal) {
+      g.fillRect(x + 2, y + 2, w - 4, 3);
+    } else {
+      g.fillRect(x + 2, y + 2, 3, h - 4);
     }
-    g.strokeStyle = "#101010";
-    g.lineWidth = 1.5;
+    g.strokeStyle = BARRIER_DARK;
+    g.lineWidth = 2;
     g.strokeRect(x, y, w, h);
   }
 
@@ -331,9 +445,9 @@ const Game = (function () {
     g.restore();
 
     // north, west and east barriers
-    stripedBand(g, ARENA.x - WALL, ARENA.y - WALL, ARENA.w + 2 * WALL, WALL, true);
-    stripedBand(g, ARENA.x - WALL, ARENA.y, WALL, ARENA.h, false);
-    stripedBand(g, ARENA.x + ARENA.w, ARENA.y, WALL, ARENA.h, false);
+    barrier(g, ARENA.x - WALL, ARENA.y - WALL, ARENA.w + 2 * WALL, WALL, true);
+    barrier(g, ARENA.x - WALL, ARENA.y, WALL, ARENA.h, false);
+    barrier(g, ARENA.x + ARENA.w, ARENA.y, WALL, ARENA.h, false);
 
     return c;
   }
@@ -342,18 +456,15 @@ const Game = (function () {
 
   // The south barrier is in front of everything, so it is drawn last.
   function drawSouthWall() {
-    stripedBand(ctx, ARENA.x - WALL, ARENA.y + ARENA.h, ARENA.w + 2 * WALL, WALL, true);
-    ctx.fillStyle = "#cfccc4";
+    barrier(ctx, ARENA.x - WALL, ARENA.y + ARENA.h, ARENA.w + 2 * WALL, WALL, true);
+    ctx.fillStyle = BARRIER_DARK;
     ctx.fillRect(ARENA.x - WALL, ARENA.y + ARENA.h + WALL, ARENA.w + 2 * WALL, FRONT);
-    ctx.strokeStyle = "#101010";
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(ARENA.x - WALL, ARENA.y + ARENA.h + WALL, ARENA.w + 2 * WALL, FRONT);
   }
 
   function drawObstacle(o) {
     // shadow
     ctx.fillStyle = "rgba(0, 0, 0, 0.12)";
-    ctx.fillRect(o.x + 7, o.y + 7, o.w, o.h);
+    ctx.fillRect(o.x + 6, o.y + 6, o.w, o.h);
 
     ctx.strokeStyle = "#101010";
     ctx.lineWidth = 2;
@@ -382,15 +493,102 @@ const Game = (function () {
     ctx.fill();
   }
 
-  function drawKart(k) {
+  // The outline of a kart's body: rounded normally, pointed in beast mode
+  function bodyPath(beast) {
+    if (!beast) {
+      roundedRect(ctx, -20, -12, 40, 24, 8);
+      return;
+    }
+    ctx.beginPath();
+    ctx.moveTo(27, 0);
+    ctx.lineTo(10, -9);
+    ctx.lineTo(-6, -14);
+    ctx.lineTo(-22, -10);
+    ctx.lineTo(-22, 10);
+    ctx.lineTo(-6, 14);
+    ctx.lineTo(10, 9);
+    ctx.closePath();
+  }
+
+  // The wide-open mouth, shown while a beast is eating a kart
+  function drawJaws(k) {
+    const t = Math.min(1, k.eating.eaten.t);
+    const open = Math.sin(t * Math.PI) * 0.85;
     ctx.save();
+    ctx.translate(k.x, k.y - 6);
+    ctx.rotate(k.angle);
+    ctx.translate(22, 0);
+
+    // inside of the mouth
+    ctx.fillStyle = "#7a0a10";
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(36 * Math.cos(open), -36 * Math.sin(open));
+    ctx.lineTo(36 * Math.cos(open), 36 * Math.sin(open));
+    ctx.closePath();
+    ctx.fill();
+
+    // upper and lower jaw
+    [-1, 1].forEach(function (side) {
+      ctx.save();
+      ctx.rotate(side * open);
+      ctx.fillStyle = "#0b0b0d";
+      ctx.strokeStyle = "#c0141c";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(38, 0);
+      ctx.lineTo(6, side * 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    });
+    ctx.restore();
+  }
+
+  function drawHpBar(k) {
+    if (k.hp >= MAX_HP || k.eaten) return;
+    const frac = Math.max(0, k.hp / MAX_HP);
+    ctx.fillStyle = "rgba(16, 16, 16, 0.25)";
+    ctx.fillRect(k.x - 19, k.y - 44, 38, 6);
+    ctx.fillStyle = frac > 0.5 ? "#101010" : (frac > 0.25 ? "#e0b83a" : "#d71921");
+    ctx.fillRect(k.x - 18, k.y - 43, 36 * frac, 4);
+  }
+
+  // The bot's name above its kart
+  function drawNameplate(k) {
+    if (!k.isBot || k.eaten) return;
+    ctx.font = "bold 11px monospace";
+    ctx.textAlign = "center";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.strokeText(k.name.toUpperCase(), k.x, k.y - 50);
+    ctx.fillStyle = "#101010";
+    ctx.fillText(k.name.toUpperCase(), k.x, k.y - 50);
+  }
+
+  function drawKart(k) {
+    const beast = k.beast > 0;
+    const color = beast ? "#0b0b0d" : k.color;
+
+    ctx.save();
+
+    // being eaten: shrink into the beast's mouth
+    if (k.eaten) {
+      const sz = Math.max(0.05, 1 - k.eaten.t);
+      ctx.translate(k.x, k.y);
+      ctx.scale(sz, sz);
+      ctx.translate(-k.x, -k.y);
+    }
+
     // blink for a moment after being hit
-    if (k.invuln > 0 && k.shield <= 0 && Math.floor(gameTime * 12) % 2 === 0) {
+    if ((k.flash > 0 || (k.invuln > 0 && k.shield <= 0)) && Math.floor(gameTime * 12) % 2 === 0) {
       ctx.globalAlpha = 0.5;
     }
 
     // shadow on the floor
-    ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
+    ctx.fillStyle = beast ? "rgba(120, 0, 0, 0.35)" : "rgba(0, 0, 0, 0.18)";
     ctx.beginPath();
     ctx.ellipse(k.x + 3, k.y + 6, 24, 16, k.angle, 0, TAU);
     ctx.fill();
@@ -413,31 +611,66 @@ const Game = (function () {
 
       if (i < LAYERS - 1) {
         // body
-        ctx.fillStyle = k.color;
-        roundedRect(ctx, -20, -12, 40, 24, 8);
+        ctx.fillStyle = color;
+        bodyPath(beast);
         ctx.fill();
 
         if (i < 2) {
           ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
-          roundedRect(ctx, -20, -12, 40, 24, 8);
+          bodyPath(beast);
+          ctx.fill();
+        }
+
+        if (beast && i >= 1) {
+          // sharp spikes at the back
+          ctx.fillStyle = "#0b0b0d";
+          ctx.beginPath();
+          ctx.moveTo(-21, -10);
+          ctx.lineTo(-32, -13);
+          ctx.lineTo(-21, -4);
+          ctx.closePath();
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(-21, 10);
+          ctx.lineTo(-32, 13);
+          ctx.lineTo(-21, 4);
+          ctx.closePath();
           ctx.fill();
         }
 
         if (i === LAYERS - 2) {
-          // top of the body: outline, stripe and headlight
-          ctx.strokeStyle = "#101010";
-          ctx.lineWidth = 2;
-          roundedRect(ctx, -20, -12, 40, 24, 8);
+          // top of the body
+          ctx.strokeStyle = beast ? "#c0141c" : "#101010";
+          ctx.lineWidth = beast ? 1.5 : 2;
+          bodyPath(beast);
           ctx.stroke();
-          ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
-          ctx.fillRect(-14, -2, 28, 4);
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(15, -6, 4, 12);
+
+          if (beast) {
+            // glowing red eyes
+            ctx.fillStyle = "#ff2a2a";
+            ctx.beginPath();
+            ctx.moveTo(9, -7);
+            ctx.lineTo(19, -3);
+            ctx.lineTo(9, -3);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(9, 7);
+            ctx.lineTo(19, 3);
+            ctx.lineTo(9, 3);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+            ctx.fillRect(-14, -2, 28, 4);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(15, -6, 4, 12);
+          }
         }
       } else {
         // the driver's helmet
-        ctx.fillStyle = "#f2f1ee";
-        ctx.strokeStyle = "#101010";
+        ctx.fillStyle = beast ? "#1a1a1d" : "#f2f1ee";
+        ctx.strokeStyle = beast ? "#ff2a2a" : "#101010";
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(-2, 0, 7, 0, TAU);
@@ -447,6 +680,9 @@ const Game = (function () {
 
       ctx.restore();
     }
+
+    // open mouth while eating
+    if (k.eating && k.eating.eaten) drawJaws(k);
 
     // shield bubble
     if (k.shield > 0 && (k.shield > 1.5 || Math.floor(gameTime * 10) % 2 === 0)) {
@@ -459,9 +695,14 @@ const Game = (function () {
       ctx.stroke();
     }
     ctx.restore();
+
+    drawHpBar(k);
+    drawNameplate(k);
   }
 
+  // A power-up box: a red top with a second color on the front (two colors, no shimmer)
   function drawBox(b) {
+    const style = b.style;
     const bob = Math.sin(gameTime * 3 + b.x) * 3;
     const lift = 10 + bob;
     const size = 26;
@@ -469,33 +710,45 @@ const Game = (function () {
     const bx = b.x - size / 2;
     const by = b.y - size / 2;
 
-    // shadow on the floor
-    ctx.fillStyle = "rgba(0, 0, 0, 0.14)";
+    // ring on the floor
+    ctx.fillStyle = "rgba(" + style.ring + ", 0.28)";
     ctx.beginPath();
-    ctx.ellipse(b.x, b.y + 8, 16, 9, 0, 0, TAU);
+    ctx.ellipse(b.x, b.y + 8, 22, 12, 0, 0, TAU);
     ctx.fill();
+    ctx.strokeStyle = "rgba(" + style.ring + ", 0.95)";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.ellipse(b.x, b.y + 8, 22, 12, 0, 0, TAU);
+    ctx.stroke();
 
     ctx.strokeStyle = "#101010";
     ctx.lineWidth = 2;
 
     // front face
-    ctx.fillStyle = "#d9d6cf";
+    ctx.fillStyle = style.front;
     ctx.fillRect(bx, by + size - hgt - lift, size, hgt);
     ctx.strokeRect(bx, by + size - hgt - lift, size, hgt);
 
-    // top face with a question mark
-    ctx.fillStyle = "#ffffff";
+    // top face
+    ctx.fillStyle = style.top;
     ctx.fillRect(bx, by - hgt - lift, size, size);
     ctx.strokeRect(bx, by - hgt - lift, size, size);
 
-    ctx.fillStyle = "#d71921";
+    // question mark
     ctx.font = "bold 20px monospace";
     ctx.textAlign = "center";
+    ctx.fillStyle = "#ffffff";
     ctx.fillText("?", b.x, by - hgt - lift + 20);
   }
 
   function drawMine(m) {
     const age = gameTime - m.born;
+    const timeLeft = MINE_LIFETIME - age;
+
+    ctx.save();
+    // blink during the last moments before it disappears
+    if (timeLeft < 1.5 && Math.floor(gameTime * 8) % 2 === 0) ctx.globalAlpha = 0.35;
+
     ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
     ctx.beginPath();
     ctx.ellipse(m.x + 2, m.y + 3, 13, 8, 0, 0, TAU);
@@ -517,12 +770,15 @@ const Game = (function () {
     ctx.beginPath();
     ctx.arc(m.x, m.y - 4, 3, 0, TAU);
     ctx.fill();
+    ctx.restore();
   }
 
+  // A small rocket (three of them are fired at once)
   function drawRocket(r) {
     ctx.save();
     ctx.translate(r.x, r.y - 10);
     ctx.rotate(r.angle);
+    ctx.scale(0.8, 0.8);
     ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
     ctx.beginPath();
     ctx.ellipse(-2, 12, 10, 4, 0, 0, TAU);
@@ -602,34 +858,55 @@ const Game = (function () {
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-    } else if (type === "boost") {
-      ctx.strokeStyle = "#d71921";
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      for (let i = 0; i < 3; i++) {
-        ctx.beginPath();
-        ctx.moveTo(-6 * u, (-2 + i * 5) * u);
-        ctx.lineTo(0, (-7 + i * 5) * u);
-        ctx.lineTo(6 * u, (-2 + i * 5) * u);
-        ctx.stroke();
-      }
+    } else if (type === "beast") {
+      // a pointed dark head with two red eyes
+      ctx.fillStyle = "#0b0b0d";
+      ctx.beginPath();
+      ctx.moveTo(0, -10 * u);
+      ctx.lineTo(8 * u, 6 * u);
+      ctx.lineTo(0, 3 * u);
+      ctx.lineTo(-8 * u, 6 * u);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#ff2a2a";
+      ctx.fillRect(-4.5 * u, -1 * u, 3 * u, 1.6 * u);
+      ctx.fillRect(1.5 * u, -1 * u, 3 * u, 1.6 * u);
     }
     ctx.restore();
   }
 
+  // Text with a light outline, so it stays readable on top of the arena
+  function outlinedText(text, x, y, color) {
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.strokeText(text, x, y);
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+  }
+
   function drawHud() {
-    // player name and lives (lives are display only until Stage 7)
+    // player name and lives
     ctx.textAlign = "left";
     ctx.fillStyle = "#101010";
     ctx.font = "bold 18px monospace";
     const label = settings.name.toUpperCase();
     ctx.fillText(label, ARENA.x, 32);
     const nameWidth = ctx.measureText(label).width;
-    for (let i = 0; i < player.lives; i++) {
-      ctx.fillStyle = "#d71921";
+    for (let i = 0; i < START_LIVES; i++) {
+      ctx.fillStyle = i < player.lives ? "#d71921" : "rgba(16, 16, 16, 0.18)";
       ctx.beginPath();
       ctx.arc(ARENA.x + nameWidth + 20 + i * 22, 26, 7, 0, TAU);
+      ctx.fill();
+    }
+
+    // health bar under the name
+    const frac = Math.max(0, player.hp / MAX_HP);
+    ctx.fillStyle = "rgba(16, 16, 16, 0.15)";
+    roundedRect(ctx, ARENA.x, 38, 140, 8, 4);
+    ctx.fill();
+    if (frac > 0) {
+      ctx.fillStyle = frac > 0.5 ? "#101010" : (frac > 0.25 ? "#e0b83a" : "#d71921");
+      roundedRect(ctx, ARENA.x, 38, Math.max(8, 140 * frac), 8, 4);
       ctx.fill();
     }
 
@@ -655,11 +932,57 @@ const Game = (function () {
       ctx.fillStyle = "#5d5d5a";
       ctx.font = "12px monospace";
       ctx.fillText("press SPACE", sx + 26, 40);
+    } else if (player.beast > 0) {
+      drawPowerIcon("beast", sx, sy, 11);
+      ctx.fillStyle = "#d71921";
+      ctx.font = "bold 16px monospace";
+      ctx.fillText("BEAST MODE " + player.beast.toFixed(1) + "s", sx + 26, 31);
+    } else if (player.shield > 0) {
+      drawPowerIcon("shield", sx, sy, 11);
+      ctx.fillStyle = "#3c82d2";
+      ctx.font = "bold 16px monospace";
+      ctx.fillText("SHIELD " + player.shield.toFixed(1) + "s", sx + 26, 31);
     } else {
       ctx.fillStyle = "#5d5d5a";
       ctx.font = "14px monospace";
       ctx.fillText("grab a box", sx + 26, 31);
     }
+
+    // opponents and their lives (top left, inside the arena)
+    ctx.font = "bold 12px monospace";
+    ctx.textAlign = "left";
+    bots.forEach(function (b, i) {
+      const y = ARENA.y + 24 + i * 18;
+      ctx.fillStyle = b.color;
+      ctx.fillRect(ARENA.x + 10, y - 9, 10, 10);
+      ctx.strokeStyle = "#101010";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(ARENA.x + 10, y - 9, 10, 10);
+      outlinedText(b.name.toUpperCase(), ARENA.x + 26, y, b.out ? "#8a8a85" : "#101010");
+      if (b.out) {
+        outlinedText("OUT", ARENA.x + 82, y, "#d71921");
+      } else {
+        for (let l = 0; l < START_LIVES; l++) {
+          ctx.fillStyle = l < b.lives ? "#d71921" : "rgba(16, 16, 16, 0.18)";
+          ctx.beginPath();
+          ctx.arc(ARENA.x + 90 + l * 12, y - 4, 4, 0, TAU);
+          ctx.fill();
+        }
+      }
+    });
+
+    // kill feed (top right, inside the arena)
+    ctx.font = "bold 12px monospace";
+    ctx.textAlign = "right";
+    let row = 0;
+    for (let i = feed.length - 1; i >= 0 && row < 4; i--) {
+      const age = gameTime - feed[i].born;
+      if (age > 5) continue;
+      ctx.globalAlpha = Math.min(1, (5 - age) / 1);
+      outlinedText(feed[i].text, ARENA.x + ARENA.w - 10, ARENA.y + 24 + row * 18, "#101010");
+      row++;
+    }
+    ctx.globalAlpha = 1;
 
     // help text at the bottom
     ctx.textAlign = "center";
@@ -669,6 +992,62 @@ const Game = (function () {
 
     ctx.textAlign = "right";
     ctx.fillText("Sound: " + (Sfx.isMuted() ? "Off" : "On") + " (M)", ARENA.x + ARENA.w + WALL, 512);
+  }
+
+  // "3, 2, 1, GO!" before the race starts
+  function drawCountdown() {
+    const cx = ARENA.x + ARENA.w / 2;
+    const cy = ARENA.y + ARENA.h / 2;
+    ctx.textAlign = "center";
+    if (countdown > 0) {
+      ctx.fillStyle = "rgba(242, 241, 238, 0.55)";
+      ctx.fillRect(ARENA.x, ARENA.y, ARENA.w, ARENA.h);
+      ctx.font = "bold 110px monospace";
+      outlinedText(String(Math.ceil(countdown)), cx, cy + 30, "#d71921");
+      ctx.font = "bold 20px monospace";
+      outlinedText("GET READY", cx, cy - 70, "#101010");
+    } else if (goTimer > 0) {
+      ctx.font = "bold 90px monospace";
+      outlinedText("GO!", cx, cy + 25, "#d71921");
+    }
+  }
+
+  // The screen shown when the match is over
+  function drawEndScreen() {
+    ctx.fillStyle = "rgba(242, 241, 238, 0.88)";
+    ctx.fillRect(ARENA.x, ARENA.y, ARENA.w, ARENA.h);
+
+    const cx = ARENA.x + ARENA.w / 2;
+    ctx.textAlign = "center";
+    ctx.fillStyle = state === "won" ? "#d71921" : "#101010";
+    ctx.font = "bold 64px monospace";
+    ctx.fillText(state === "won" ? "YOU WIN!" : "KNOCKED OUT", cx, 200);
+
+    ctx.fillStyle = "#101010";
+    ctx.font = "bold 22px monospace";
+    if (state === "won") {
+      ctx.fillText("Last kart standing", cx, 245);
+    } else {
+      ctx.fillText("You finished " + ordinal(place) + " of " + (bots.length + 1), cx, 245);
+    }
+    ctx.fillStyle = "#5d5d5a";
+    ctx.font = "16px monospace";
+    ctx.fillText("Knock-outs: " + (player.kills || 0) + "   ·   Difficulty: " + settings.difficulty, cx, 275);
+
+    // Play Again button
+    ctx.fillStyle = "#d71921";
+    roundedRect(ctx, AGAIN_BUTTON.x, AGAIN_BUTTON.y, AGAIN_BUTTON.w, AGAIN_BUTTON.h, 27);
+    ctx.fill();
+    ctx.strokeStyle = "#8f0e14";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 22px monospace";
+    ctx.fillText("PLAY AGAIN", cx, AGAIN_BUTTON.y + 35);
+
+    ctx.fillStyle = "#5d5d5a";
+    ctx.font = "14px monospace";
+    ctx.fillText("or press ENTER  ·  use \"Back to setup\" below to change your kart or difficulty", cx, 410);
   }
 
   function drawParticles() {
@@ -709,6 +1088,12 @@ const Game = (function () {
     drawParticles();
     drawSouthWall();
     drawHud();
+
+    if (state === "playing") {
+      drawCountdown();
+    } else {
+      drawEndScreen();
+    }
   }
 
   // ---------- Particles (sparks and smoke) ----------
@@ -743,66 +1128,102 @@ const Game = (function () {
   function makeKart(x, y, angle, color, name) {
     return {
       x: x, y: y, angle: angle, speed: 0,
-      color: color, name: name, lives: 3,
-      powerup: null, shield: 0, boost: 0, spin: 0, invuln: 0
+      color: color, name: name,
+      lives: START_LIVES, hp: MAX_HP, kills: 0,
+      powerup: null, shield: 0, beast: 0, invuln: 0, flash: 0,
+      speedMul: 1, turnMul: 1,
+      touchTimer: 0, turnInput: 0, out: false, isBot: false, ai: null,
+      eating: null,   // the kart a beast is eating right now
+      eaten: null     // set while this kart is being eaten
     };
   }
 
   // Moves one kart. "input" says which controls are pressed, so the
-  // same code can drive the bots in Stage 7.
+  // same code drives you and the bots.
   function stepKart(k, input, dt) {
     const sec = dt / 60;
     if (k.shield > 0) k.shield = Math.max(0, k.shield - sec);
-    if (k.boost > 0) k.boost = Math.max(0, k.boost - sec);
+    if (k.beast > 0) k.beast = Math.max(0, k.beast - sec);
     if (k.invuln > 0) k.invuln = Math.max(0, k.invuln - sec);
+    if (k.flash > 0) k.flash = Math.max(0, k.flash - sec);
+    if (k.touchTimer > 0) k.touchTimer = Math.max(0, k.touchTimer - sec);
 
-    if (k.spin > 0) {
-      // spinning out after a hit: no control for a moment
-      k.spin = Math.max(0, k.spin - sec);
-      k.angle += 0.35 * dt;
-      k.speed = 0;
-      return;
-    }
+    const topSpeed = (k.beast > 0 ? BEAST_SPEED : MAX_SPEED) * k.speedMul;
 
-    if (k.boost > 0) {
-      k.speed = Math.min(BOOST_SPEED, k.speed + 0.35 * dt);
-      addParticle(k.x - Math.cos(k.angle) * 24, k.y - Math.sin(k.angle) * 24,
-        -Math.cos(k.angle) * 1.5 + (Math.random() - 0.5), -Math.sin(k.angle) * 1.5 + (Math.random() - 0.5),
-        0.3, Math.random() < 0.5 ? "#ffb400" : "#d71921", 3 + Math.random() * 2, 4);
-    } else {
-      if (input.up) {
-        if (k.speed < MAX_SPEED) k.speed = Math.min(MAX_SPEED, k.speed + ACCEL * dt);
-      } else if (input.down) {
-        k.speed -= (k.speed > 0 ? BRAKE : ACCEL * 0.7) * dt;
-      } else if (k.speed > 0) {
-        k.speed = Math.max(0, k.speed - FRICTION * dt);
-      } else if (k.speed < 0) {
-        k.speed = Math.min(0, k.speed + FRICTION * dt);
-      }
-      if (k.speed > MAX_SPEED) k.speed = Math.max(MAX_SPEED, k.speed - 0.12 * dt);
+    if (input.up) {
+      if (k.speed < topSpeed) k.speed = Math.min(topSpeed, k.speed + ACCEL * dt);
+    } else if (input.down) {
+      k.speed -= (k.speed > 0 ? BRAKE : ACCEL * 0.7) * dt;
+    } else if (k.speed > 0) {
+      k.speed = Math.max(0, k.speed - FRICTION * dt);
+    } else if (k.speed < 0) {
+      k.speed = Math.min(0, k.speed + FRICTION * dt);
     }
+    if (k.speed > topSpeed) k.speed = Math.max(topSpeed, k.speed - 0.12 * dt);
     if (k.speed < -MAX_REVERSE) k.speed = -MAX_REVERSE;
 
-    // steering (only works while moving)
+    // steering
     const turn = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-    const grip = Math.max(-1, Math.min(1, k.speed / 2));
-    k.angle += turn * TURN_RATE * grip * dt;
+    let grip = Math.max(-1, Math.min(1, k.speed / 2));
+    if (turn !== 0) {
+      // you can turn a little even when you are almost stopped...
+      if (Math.abs(grip) < 0.45 && (input.up || input.down)) {
+        grip = (input.down && !input.up) ? -0.45 : 0.45;
+      }
+      // ...and a lot when you have just touched a wall, so you can always swing away
+      if (k.touchTimer > 0 && Math.abs(grip) < 0.9) {
+        grip = grip < 0 ? -0.9 : 0.9;
+      }
+    }
+    k.angle += turn * TURN_RATE * k.turnMul * grip * dt;
+    k.turnInput = turn;
 
     // move
     k.x += Math.cos(k.angle) * k.speed * dt;
     k.y += Math.sin(k.angle) * k.speed * dt;
   }
 
-  function resolveCollisions(k) {
+  // What happens when a kart pushes into a surface.
+  // (nx, ny) points away from the surface, into the free space.
+  function bumpKart(k, nx, ny, dt) {
+    k.touchTimer = 0.35;
+    const dir = k.speed >= 0 ? 1 : -1;
+    const mx = Math.cos(k.angle) * dir;
+    const my = Math.sin(k.angle) * dir;
+    const into = -(mx * nx + my * ny);   // 1 = straight into the surface, 0 = sliding along it
+    if (into <= 0.02) return;
+
+    // a hard head-on hit bounces you back a little
+    if (into > 0.7 && Math.abs(k.speed) > 1.5) {
+      k.speed = -k.speed * 0.25;
+      return;
+    }
+
+    // scraping along a wall only slows you a little
+    k.speed *= 1 - 0.3 * into * Math.min(1, dt);
+
+    // and, if you are not steering yourself, gently turns you so you slide along
+    // the wall instead of sticking
+    if (k.turnInput) return;
+    const tx = mx + nx * into;
+    const ty = my + ny * into;
+    if (Math.hypot(tx, ty) > 0.15) {
+      let target = Math.atan2(ty, tx);
+      if (dir < 0) target += Math.PI;
+      k.angle += angleDiff(target, k.angle) * Math.min(1, 0.18 * dt);
+    }
+  }
+
+  function resolveCollisions(k, dt) {
     // walls
     const minX = ARENA.x + KART_RADIUS;
     const maxX = ARENA.x + ARENA.w - KART_RADIUS;
     const minY = ARENA.y + KART_RADIUS;
     const maxY = ARENA.y + ARENA.h - KART_RADIUS;
-    if (k.x < minX) { k.x = minX; k.speed *= 0.7; }
-    if (k.x > maxX) { k.x = maxX; k.speed *= 0.7; }
-    if (k.y < minY) { k.y = minY; k.speed *= 0.7; }
-    if (k.y > maxY) { k.y = maxY; k.speed *= 0.7; }
+    if (k.x < minX) { k.x = minX; bumpKart(k, 1, 0, dt); }
+    if (k.x > maxX) { k.x = maxX; bumpKart(k, -1, 0, dt); }
+    if (k.y < minY) { k.y = minY; bumpKart(k, 0, 1, dt); }
+    if (k.y > maxY) { k.y = maxY; bumpKart(k, 0, -1, dt); }
 
     // blocks
     OBSTACLES.forEach(function (o) {
@@ -812,21 +1233,114 @@ const Game = (function () {
       const dy = k.y - nearestY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < KART_RADIUS) {
+        let nx = 0;
+        let ny = -1;
         if (dist === 0) {
           k.y = o.y - KART_RADIUS;
         } else {
+          nx = dx / dist;
+          ny = dy / dist;
           const push = KART_RADIUS - dist;
-          k.x += (dx / dist) * push;
-          k.y += (dy / dist) * push;
+          k.x += nx * push;
+          k.y += ny * push;
         }
-        k.speed *= 0.7;
+        bumpKart(k, nx, ny, dt);
       }
     });
   }
 
-  // A kart gets hit by a rocket or a mine.
-  function hitKart(k) {
-    if (k.invuln > 0) return;
+  // Karts push each other instead of driving through each other
+  function separateKarts() {
+    const minDist = KART_RADIUS * 1.7;
+    for (let i = 0; i < karts.length; i++) {
+      for (let j = i + 1; j < karts.length; j++) {
+        const a = karts[i];
+        const b = karts[j];
+        if (a.out || b.out || a.eaten || b.eaten) continue;
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        let dist = Math.hypot(dx, dy);
+        if (dist < minDist) {
+          if (dist === 0) { dx = 1; dy = 0; dist = 1; }
+          const push = (minDist - dist) / 2;
+          const nx = dx / dist;
+          const ny = dy / dist;
+          a.x -= nx * push;
+          a.y -= ny * push;
+          b.x += nx * push;
+          b.y += ny * push;
+          a.speed *= 0.95;
+          b.speed *= 0.95;
+        }
+      }
+    }
+  }
+
+  // ---------- Health, damage and knock-outs ----------
+  function addFeed(text) {
+    feed.push({ text: text, born: gameTime });
+    if (feed.length > 6) feed.shift();
+  }
+
+  function respawnKart(k) {
+    // come back at the corner that is farthest from the other karts
+    let best = SPAWN_SPOTS[0];
+    let bestDist = -1;
+    SPAWN_SPOTS.forEach(function (s) {
+      let nearest = 9999;
+      karts.forEach(function (o) {
+        if (o !== k && !o.out) nearest = Math.min(nearest, Math.hypot(o.x - s.x, o.y - s.y));
+      });
+      if (nearest > bestDist) { bestDist = nearest; best = s; }
+    });
+    k.x = best.x;
+    k.y = best.y;
+    k.angle = Math.atan2(ARENA.y + ARENA.h / 2 - best.y, ARENA.x + ARENA.w / 2 - best.x);
+    k.speed = 0;
+    k.hp = MAX_HP;
+    k.powerup = null;
+    k.shield = 0;
+    k.beast = 0;
+    k.flash = 0;
+    k.invuln = 2;
+    k.eating = null;
+    k.eaten = null;
+    if (k.ai) {
+      k.ai.reverse = 0;
+      k.ai.stuck = 0;
+      k.ai.retarget = 0;
+    }
+  }
+
+  function knockOut(k, attacker, how) {
+    addExplosion(k.x, k.y, true);
+    Sfx.explode();
+    k.lives -= 1;
+    const out = k.lives <= 0;
+
+    let text;
+    if (!attacker || attacker === k) {
+      text = k.name.toUpperCase() + " blew up";
+    } else {
+      text = attacker.name.toUpperCase() + " " + VERBS[how] + " " + k.name.toUpperCase();
+      attacker.kills += 1;
+    }
+    if (out) text += " (OUT)";
+    addFeed(text);
+
+    if (out) {
+      k.out = true;
+      k.eaten = null;
+      karts.forEach(function (o) {
+        if (o.eating === k) o.eating = null;
+      });
+    } else {
+      respawnKart(k);
+    }
+  }
+
+  function damageKart(k, amount, attacker, how) {
+    if (k.beast > 0 || k.invuln > 0 || k.eaten || k.out) return;
     if (k.shield > 0) {
       // the shield takes the hit
       k.shield = 0;
@@ -835,27 +1349,73 @@ const Game = (function () {
       Sfx.shieldPop();
       return;
     }
-    // spin out (real lives are added in Stage 7)
-    k.spin = 1.0;
-    k.invuln = 2.0;
-    k.speed = 0;
-    k.boost = 0;
-    addExplosion(k.x, k.y, true);
-    Sfx.explode();
+    k.hp -= amount;
+    k.flash = 0.3;
+    k.speed *= 0.5;
+    if (k.hp <= 0) {
+      knockOut(k, attacker, how);
+    } else {
+      addExplosion(k.x, k.y, false);
+      Sfx.hit();
+    }
+  }
+
+  // ---------- Beast mode: eat other karts ----------
+  function updateBeasts() {
+    karts.forEach(function (b) {
+      if (b.beast <= 0 || b.eating || b.eaten || b.out) return;
+      for (let i = 0; i < karts.length; i++) {
+        const v = karts[i];
+        if (v === b || v.out || v.eaten || v.beast > 0 || v.invuln > 0) continue;
+        if (Math.hypot(v.x - b.x, v.y - b.y) < KART_RADIUS * 2) {
+          v.eaten = { by: b, t: 0 };
+          b.eating = v;
+          Sfx.eat();
+          break;
+        }
+      }
+    });
+  }
+
+  function updateEaten(v, dt) {
+    const b = v.eaten.by;
+    v.eaten.t += dt / 60 / EAT_TIME;
+    // slide into the beast's mouth
+    const mouthX = b.x + Math.cos(b.angle) * 30;
+    const mouthY = b.y + Math.sin(b.angle) * 30;
+    const pull = Math.min(1, 0.3 * dt);
+    v.x += (mouthX - v.x) * pull;
+    v.y += (mouthY - v.y) * pull;
+
+    if (v.eaten.t >= 1) {
+      b.eating = null;
+      v.eaten = null;
+      addExplosion(v.x, v.y, false, "#101010");
+      knockOut(v, b, "beast");
+    }
   }
 
   // ---------- Power-ups ----------
+  function randomPowerup() {
+    let r = Math.random() * 100;
+    for (let i = 0; i < POWERUP_WEIGHTS.length; i++) {
+      r -= POWERUP_WEIGHTS[i].weight;
+      if (r <= 0) return POWERUP_WEIGHTS[i].type;
+    }
+    return POWERUP_WEIGHTS[0].type;
+  }
+
   function usePowerup(k) {
-    if (!k.powerup || k.spin > 0) return;
+    if (!k.powerup || k.eaten || k.out) return;
     const type = k.powerup;
     const dirX = Math.cos(k.angle);
     const dirY = Math.sin(k.angle);
 
-    if (type === "boost") {
-      k.boost = 1.8;
-      Sfx.boost();
+    if (type === "beast") {
+      k.beast = BEAST_TIME;
+      Sfx.beast();
     } else if (type === "shield") {
-      k.shield = 6;
+      k.shield = SHIELD_TIME;
       Sfx.shield();
     } else if (type === "mine") {
       const mx = Math.max(ARENA.x + 12, Math.min(ARENA.x + ARENA.w - 12, k.x - dirX * 32));
@@ -863,7 +1423,21 @@ const Game = (function () {
       mines.push({ x: mx, y: my, owner: k, born: gameTime });
       Sfx.mine();
     } else if (type === "rocket") {
-      rockets.push({ x: k.x + dirX * 28, y: k.y + dirY * 28, angle: k.angle, owner: k, born: gameTime });
+      // three small rockets in a narrow fan, so they are easier to aim
+      const spread = [-0.07, 0, 0.07];
+      const sideX = -dirY;
+      const sideY = dirX;
+      spread.forEach(function (offset, i) {
+        const sideways = (i - 1) * 9;
+        rockets.push({
+          x: k.x + dirX * 28 + sideX * sideways,
+          y: k.y + dirY * 28 + sideY * sideways,
+          angle: k.angle + offset,
+          owner: k,
+          born: gameTime,
+          damage: ROCKET_DAMAGE
+        });
+      });
       Sfx.rocket();
     }
     k.powerup = null;
@@ -876,9 +1450,10 @@ const Game = (function () {
         return;
       }
       karts.forEach(function (k) {
-        if (!b.active || k.powerup || k.spin > 0) return;
+        if (!b.active || k.powerup || k.eaten || k.out) return;
         if (Math.hypot(k.x - b.x, k.y - b.y) < KART_RADIUS + 14) {
-          k.powerup = POWERUPS[Math.floor(Math.random() * POWERUPS.length)];
+          k.powerup = randomPowerup();
+          if (k.ai) k.ai.hold = 0;
           b.active = false;
           b.respawnAt = gameTime + BOX_RESPAWN_SECONDS;
           if (k === player) Sfx.pickup();
@@ -893,8 +1468,8 @@ const Game = (function () {
       const r = rockets[i];
       r.x += Math.cos(r.angle) * ROCKET_SPEED * dt;
       r.y += Math.sin(r.angle) * ROCKET_SPEED * dt;
-      addParticle(r.x, r.y, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6, 0.3,
-        Math.random() < 0.5 ? "#ffb400" : "#8a8a85", 3 + Math.random() * 2, 10);
+      addParticle(r.x, r.y, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6, 0.25,
+        Math.random() < 0.5 ? "#ffb400" : "#8a8a85", 2 + Math.random() * 2, 10);
 
       let boom = false;
       if (r.x < ARENA.x || r.x > ARENA.x + ARENA.w || r.y < ARENA.y || r.y > ARENA.y + ARENA.h) boom = true;
@@ -902,16 +1477,15 @@ const Game = (function () {
         if (r.x > o.x && r.x < o.x + o.w && r.y > o.y && r.y < o.y + o.h) boom = true;
       });
       karts.forEach(function (k) {
-        if (k !== r.owner && Math.hypot(k.x - r.x, k.y - r.y) < KART_RADIUS + 6) {
+        if (k !== r.owner && !k.eaten && !k.out && Math.hypot(k.x - r.x, k.y - r.y) < KART_RADIUS + 8) {
           boom = true;
-          hitKart(k);
+          damageKart(k, r.damage, r.owner, "rocket");
         }
       });
       if (gameTime - r.born > 3) boom = true;
 
       if (boom) {
         addExplosion(r.x, r.y, false);
-        Sfx.explode();
         rockets.splice(i, 1);
       }
     }
@@ -920,18 +1494,19 @@ const Game = (function () {
     for (let i = mines.length - 1; i >= 0; i--) {
       const m = mines[i];
       const age = gameTime - m.born;
-      if (age > 25) {
+      if (age > MINE_LIFETIME) {
         mines.splice(i, 1);
         continue;
       }
       if (age < 0.5) continue;
       for (let j = 0; j < karts.length; j++) {
         const k = karts[j];
+        if (k.eaten || k.out || k.beast > 0) continue;
         if (k === m.owner && age < 1.5) continue;
         if (Math.hypot(k.x - m.x, k.y - m.y) < KART_RADIUS + 10) {
           addExplosion(m.x, m.y, true);
+          damageKart(k, MINE_DAMAGE, m.owner, "mine");
           Sfx.explode();
-          hitKart(k);
           mines.splice(i, 1);
           break;
         }
@@ -939,34 +1514,286 @@ const Game = (function () {
     }
   }
 
+  // ---------- Bots ----------
+  function makeBot(index, color, difficultyName) {
+    const d = DIFFICULTY[difficultyName] || DIFFICULTY.medium;
+    const start = BOT_STARTS[index];
+    const bot = makeKart(start.x, start.y, start.angle, color, BOT_NAMES[index]);
+    bot.isBot = true;
+    bot.speedMul = d.speed;
+    bot.turnMul = d.turn;
+    bot.ai = {
+      diff: d,
+      target: { x: ARENA.x + ARENA.w / 2, y: ARENA.y + ARENA.h / 2 },
+      retarget: 0,
+      noise: 0,
+      stuck: 0,
+      reverse: 0,
+      reverseTurn: 1,
+      hold: 0
+    };
+    return bot;
+  }
+
+  function nearestEnemy(k) {
+    let best = null;
+    let bestDist = 1e9;
+    karts.forEach(function (o) {
+      if (o === k || o.out || o.eaten) return;
+      const d = Math.hypot(o.x - k.x, o.y - k.y);
+      if (d < bestDist) { bestDist = d; best = o; }
+    });
+    return best;
+  }
+
+  // Is this spot too close to a wall or a block for a kart to drive through?
+  function botBlocked(px, py) {
+    const margin = 26;
+    if (px < ARENA.x + margin || px > ARENA.x + ARENA.w - margin ||
+        py < ARENA.y + margin || py > ARENA.y + ARENA.h - margin) return true;
+    for (let i = 0; i < OBSTACLES.length; i++) {
+      const o = OBSTACLES[i];
+      if (px > o.x - margin && px < o.x + o.w + margin && py > o.y - margin && py < o.y + o.h + margin) return true;
+    }
+    return false;
+  }
+
+  // Is there a block between two points? (rockets cannot fly through blocks)
+  function lineBlocked(x1, y1, x2, y2) {
+    const dist = Math.hypot(x2 - x1, y2 - y1);
+    const steps = Math.ceil(dist / 14);
+    for (let s = 1; s < steps; s++) {
+      const px = x1 + (x2 - x1) * (s / steps);
+      const py = y1 + (y2 - y1) * (s / steps);
+      for (let i = 0; i < OBSTACLES.length; i++) {
+        const o = OBSTACLES[i];
+        if (px > o.x - 4 && px < o.x + o.w + 4 && py > o.y - 4 && py < o.y + o.h + 4) return true;
+      }
+    }
+    return false;
+  }
+
+  // Decide what the bot is heading for: a box, an enemy, or just a wander spot
+  function botChooseTarget(k) {
+    const ai = k.ai;
+    const foe = nearestEnemy(k);
+
+    if (k.beast > 0 && foe) {
+      ai.target = { kart: foe };
+      return;
+    }
+
+    if (!k.powerup) {
+      let best = null;
+      let bestDist = 1e9;
+      boxes.forEach(function (b) {
+        if (!b.active) return;
+        const d = Math.hypot(b.x - k.x, b.y - k.y);
+        if (d < bestDist) { bestDist = d; best = b; }
+      });
+      if (best) {
+        ai.target = { x: best.x, y: best.y };
+        return;
+      }
+    }
+
+    if (foe) {
+      ai.target = { kart: foe };
+      return;
+    }
+
+    ai.target = {
+      x: ARENA.x + 60 + Math.random() * (ARENA.w - 120),
+      y: ARENA.y + 60 + Math.random() * (ARENA.h - 120)
+    };
+  }
+
+  // Bots use their power-up when it makes sense
+  function botUsePowerup(k) {
+    const ai = k.ai;
+    const d = ai.diff;
+    if (!k.powerup || ai.hold < d.reaction) return;
+    const foe = nearestEnemy(k);
+    if (!foe) return;
+
+    const dist = Math.hypot(foe.x - k.x, foe.y - k.y);
+    const toFoe = Math.atan2(foe.y - k.y, foe.x - k.x);
+    const aimOff = Math.abs(angleDiff(toFoe, k.angle));
+
+    if (k.powerup === "rocket") {
+      if (dist > 70 && dist < 400 && aimOff < d.aim && !lineBlocked(k.x, k.y, foe.x, foe.y)) usePowerup(k);
+    } else if (k.powerup === "mine") {
+      const behind = Math.abs(angleDiff(toFoe + Math.PI, k.angle)) < 0.7;
+      if ((dist < 170 && behind) || ai.hold > 7) usePowerup(k);
+    } else if (k.powerup === "shield") {
+      if (dist < 220 || k.hp < 60 || ai.hold > 6) usePowerup(k);
+    } else if (k.powerup === "beast") {
+      if (dist < 300 || ai.hold > 6) usePowerup(k);
+    }
+  }
+
+  // Works out which controls the bot "presses" this frame
+  function botInput(k, dt) {
+    const ai = k.ai;
+    const d = ai.diff;
+    const sec = dt / 60;
+    const input = { up: false, down: false, left: false, right: false };
+
+    // backing out of a corner
+    if (ai.reverse > 0) {
+      ai.reverse -= sec;
+      input.down = true;
+      if (ai.reverseTurn > 0) input.right = true; else input.left = true;
+      return input;
+    }
+
+    if (k.powerup) ai.hold += sec; else ai.hold = 0;
+
+    // pick a new target every so often
+    ai.retarget -= sec;
+    const t0 = ai.target;
+    if (ai.retarget <= 0 || (t0.kart && (t0.kart.out || t0.kart.eaten))) {
+      botChooseTarget(k);
+      ai.retarget = 0.35 + Math.random() * 0.35;
+      ai.noise = (Math.random() - 0.5) * d.aimNoise * 2;
+    }
+
+    const t = ai.target;
+    const tx = t.kart ? t.kart.x : t.x;
+    const ty = t.kart ? t.kart.y : t.y;
+    let steer = angleDiff(Math.atan2(ty - k.y, tx - k.x) + ai.noise, k.angle);
+
+    // look ahead for walls and blocks, and steer around them
+    const probe = function (a, dist) {
+      return botBlocked(k.x + Math.cos(a) * dist, k.y + Math.sin(a) * dist);
+    };
+    const centerBlocked = probe(k.angle, 70) || probe(k.angle, 40);
+    const leftBlocked = probe(k.angle - 0.6, 60);
+    const rightBlocked = probe(k.angle + 0.6, 60);
+
+    if (centerBlocked) {
+      if (!leftBlocked && !rightBlocked) steer = (steer >= 0 ? 1 : -1) * 1.3;
+      else if (!leftBlocked) steer = -1.3;
+      else if (!rightBlocked) steer = 1.3;
+      else steer = ai.reverseTurn * 1.3;
+    } else if (leftBlocked && !rightBlocked) {
+      steer = Math.max(steer, 0.5);
+    } else if (rightBlocked && !leftBlocked) {
+      steer = Math.min(steer, -0.5);
+    }
+
+    if (steer > 0.08) input.right = true;
+    else if (steer < -0.08) input.left = true;
+
+    input.up = true;
+    if (Math.abs(steer) > 1.4 && k.speed > 2.5) input.up = false;
+
+    // not getting anywhere? reverse for a moment
+    if (Math.abs(k.speed) < 0.6) ai.stuck += sec; else ai.stuck = 0;
+    if (ai.stuck > 0.8) {
+      ai.stuck = 0;
+      ai.reverse = 0.7;
+      ai.reverseTurn = Math.random() < 0.5 ? 1 : -1;
+    }
+
+    botUsePowerup(k);
+    return input;
+  }
+
   // ---------- The game loop ----------
   function resetWorld() {
     gameTime = 0;
-    player = makeKart(130, ARENA.y + ARENA.h / 2, 0, settings.kartColor, settings.name);
-    karts = [player];
-    boxes = BOX_SPOTS.map(function (s) {
-      return { x: s.x, y: s.y, active: true, respawnAt: 0 };
-    });
+    state = "playing";
+    countdown = COUNTDOWN_SECONDS;
+    goTimer = 0;
+    lastTick = COUNTDOWN_SECONDS + 1;
+    place = 1;
+    feed = [];
     mines = [];
     rockets = [];
     particles = [];
+
+    player = makeKart(130, ARENA.y + ARENA.h / 2, 0, settings.kartColor, settings.name);
+    karts = [player];
+
+    // the bots get kart colors different from yours
+    const colors = BOT_COLORS.filter(function (c) { return c !== settings.kartColor; });
+    bots = [];
+    for (let i = 0; i < BOT_STARTS.length; i++) {
+      const bot = makeBot(i, colors[i], settings.difficulty);
+      bots.push(bot);
+      karts.push(bot);
+    }
+
+    boxes = BOX_SPOTS.map(function (s, i) {
+      return { x: s.x, y: s.y, active: true, respawnAt: 0, style: BOX_STYLES[i % BOX_STYLES.length] };
+    });
   }
 
-  function update(dt) {
-    gameTime += dt / 60;
+  function restart() {
+    resetWorld();
+    keys = {};
+  }
 
-    const input = {
+  function playerInput() {
+    return {
       up: keys.ArrowUp || keys.KeyW,
       down: keys.ArrowDown || keys.KeyS,
       left: keys.ArrowLeft || keys.KeyA,
       right: keys.ArrowRight || keys.KeyD
     };
+  }
 
-    stepKart(player, input, dt);
-    resolveCollisions(player);
+  function update(dt) {
+    gameTime += dt / 60;
+    updateParticles(dt);
+    if (state !== "playing") return;
+
+    // 3, 2, 1, GO!
+    if (countdown > 0) {
+      countdown -= dt / 60;
+      const shown = Math.ceil(countdown);
+      if (shown > 0 && shown < lastTick) {
+        lastTick = shown;
+        Sfx.tick();
+      }
+      if (countdown <= 0) {
+        goTimer = 0.8;
+        Sfx.go();
+      }
+      return;
+    }
+    if (goTimer > 0) goTimer -= dt / 60;
+
+    // drive everyone
+    karts.forEach(function (k) {
+      if (k.out) return;
+      if (k.eaten) {
+        updateEaten(k, dt);
+        return;
+      }
+      const input = k.isBot ? botInput(k, dt) : playerInput();
+      stepKart(k, input, dt);
+    });
+    separateKarts();
+    karts.forEach(function (k) {
+      if (!k.out && !k.eaten) resolveCollisions(k, dt);
+    });
+
+    updateBeasts();
     updateBoxes();
     updateWeapons(dt);
-    updateParticles(dt);
+
+    // remove karts that are out, then see if the match is over
+    karts = karts.filter(function (k) { return !k.out; });
+    if (player.out) {
+      state = "lost";
+      place = karts.length + 1;
+      Sfx.lose();
+    } else if (karts.length === 1) {
+      state = "won";
+      Sfx.win();
+    }
   }
 
   function loop(now) {
