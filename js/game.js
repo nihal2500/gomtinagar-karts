@@ -143,13 +143,10 @@ const Game = (function () {
   const BARRIER_COLOR = "#d71921";   // the single color of the arena barriers
   const BARRIER_DARK = "#8f0e14";    // a darker shade of the same color (edges and front)
 
-  // Power-up boxes: a red top plus a second color on the front.
-  // Each box uses the next style in this list.
-  const BOX_STYLES = [
-    { top: "#d71921", front: "#ff8a1f", ring: "255, 138, 31" },   // red + orange
-    { top: "#d71921", front: "#2ea36b", ring: "46, 163, 107" },   // red + green
-    { top: "#d71921", front: "#ffd23f", ring: "255, 210, 63" }    // red + yellow
-  ];
+  // Power-up boxes: a blend of red and orange
+  const BOX_RED = "#d71921";
+  const BOX_ORANGE = "#ff9a1f";
+  const BOX_DEEP_RED = "#a3121a";
 
   // ---------- The arena ----------
   const ARENA = { x: 50, y: 66, w: 800, h: 400 };
@@ -180,32 +177,43 @@ const Game = (function () {
     { x: 100, y: 422 }, { x: 800, y: 422 }
   ];
 
-  // Where the three bots start, their names and kart colors
-  const BOT_STARTS = [
-    { x: 790, y: 110, angle: Math.PI },
-    { x: 790, y: 422, angle: Math.PI },
-    { x: 450, y: 92, angle: Math.PI / 2 }
-  ];
+  // Where the bots start (it depends on how many bots you choose)
+  const BOT_STARTS = {
+    1: [
+      { x: 790, y: 200, angle: Math.PI }
+    ],
+    2: [
+      { x: 790, y: 110, angle: Math.PI },
+      { x: 790, y: 422, angle: Math.PI }
+    ],
+    3: [
+      { x: 790, y: 110, angle: Math.PI },
+      { x: 790, y: 422, angle: Math.PI },
+      { x: 450, y: 92, angle: Math.PI / 2 }
+    ]
+  };
   const BOT_NAMES = ["Zippy", "Bolt", "Nova"];
   const BOT_COLORS = ["#d71921", "#3a3a3a", "#5aa9f0", "#f2a900", "#2ea36b"];
 
-  // How the bots behave on each difficulty
-  //  speed/turn: how fast they drive and steer compared with you
-  //  aim: how exactly they must aim before firing (smaller = better)
-  //  aimNoise: how much they wobble while chasing
-  //  reaction: seconds they wait before using a power-up
-  const DIFFICULTY = {
-    easy:   { speed: 0.72, turn: 0.80, aim: 0.38, aimNoise: 0.50, reaction: 1.4 },
-    medium: { speed: 0.88, turn: 0.95, aim: 0.22, aimNoise: 0.22, reaction: 0.8 },
-    hard:   { speed: 1.00, turn: 1.10, aim: 0.12, aimNoise: 0.06, reaction: 0.35 }
+  // ---------- How tough the bots are ----------
+  // SKILL says how good each single bot is: 0 = very weak, 1 = a very strong player.
+  // The three numbers in each row are for 1 bot, 2 bots and 3 bots.
+  // With more bots, each bot is a little weaker, but together they are harder to beat.
+  // (For comparison: the old Easy bot was about 0.3, the old Medium about 0.7, the old Hard about 1.0.)
+  const SKILL = {
+    easy:   [0.54, 0.50, 0.46],
+    medium: [0.88, 0.83, 0.79],
+    hard:   [1.08, 1.05, 1.03]
   };
+  // How often the bots go after YOU instead of each other (matters with 2 or 3 bots)
+  const FOCUS = { easy: 0.45, medium: 0.65, hard: 0.95 };
 
   // How likely each power-up is (the numbers are percentages and add up to 100)
   const POWERUP_WEIGHTS = [
-    { type: "rocket", weight: 34 },
-    { type: "beast",  weight: 30 },
+    { type: "rocket", weight: 40 },
+    { type: "beast",  weight: 20 },
     { type: "shield", weight: 22 },
-    { type: "mine",   weight: 14 }
+    { type: "mine",   weight: 18 }
   ];
   const POWERUP_NAMES = { rocket: "ROCKETS", mine: "MINE", shield: "SHIELD", beast: "BEAST" };
   const VERBS = { rocket: "rocketed", mine: "mined", beast: "ate" };
@@ -244,7 +252,7 @@ const Game = (function () {
   let keys = {};
   let player = null;
   let karts = [];          // karts still in the match
-  let bots = [];           // all three bots (even after they are out)
+  let bots = [];           // all the bots (even after they are out)
   let boxes = [];
   let mines = [];
   let rockets = [];
@@ -700,45 +708,56 @@ const Game = (function () {
     drawNameplate(k);
   }
 
-  // A power-up box: a red top with a second color on the front (two colors, no shimmer)
+  // A power-up box: red and orange blended together, with nothing under it
   function drawBox(b) {
-    const style = b.style;
     const bob = Math.sin(gameTime * 3 + b.x) * 3;
     const lift = 10 + bob;
     const size = 26;
     const hgt = 12;
     const bx = b.x - size / 2;
     const by = b.y - size / 2;
-
-    // ring on the floor
-    ctx.fillStyle = "rgba(" + style.ring + ", 0.28)";
-    ctx.beginPath();
-    ctx.ellipse(b.x, b.y + 8, 22, 12, 0, 0, TAU);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(" + style.ring + ", 0.95)";
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.ellipse(b.x, b.y + 8, 22, 12, 0, 0, TAU);
-    ctx.stroke();
+    const topY = by - hgt - lift;
+    const frontY = by + size - hgt - lift;
 
     ctx.strokeStyle = "#101010";
     ctx.lineWidth = 2;
 
-    // front face
-    ctx.fillStyle = style.front;
-    ctx.fillRect(bx, by + size - hgt - lift, size, hgt);
-    ctx.strokeRect(bx, by + size - hgt - lift, size, hgt);
+    // front face: orange fading into deep red
+    let blend = ctx.createLinearGradient(0, frontY, 0, frontY + hgt);
+    blend.addColorStop(0, BOX_ORANGE);
+    blend.addColorStop(1, BOX_DEEP_RED);
+    ctx.fillStyle = blend;
+    ctx.fillRect(bx, frontY, size, hgt);
+    ctx.strokeRect(bx, frontY, size, hgt);
 
-    // top face
-    ctx.fillStyle = style.top;
-    ctx.fillRect(bx, by - hgt - lift, size, size);
-    ctx.strokeRect(bx, by - hgt - lift, size, size);
+    // top face: red blending into orange
+    blend = ctx.createLinearGradient(bx, topY, bx + size, topY + size);
+    blend.addColorStop(0, BOX_RED);
+    blend.addColorStop(1, BOX_ORANGE);
+    ctx.fillStyle = blend;
+    ctx.fillRect(bx, topY, size, size);
+    ctx.strokeRect(bx, topY, size, size);
+
+    // soft light border and a little shine
+    ctx.strokeStyle = "rgba(255, 240, 200, 0.75)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(bx + 3, topY + 3, size - 6, size - 6);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.28)";
+    ctx.beginPath();
+    ctx.moveTo(bx + 4, topY + 4);
+    ctx.lineTo(bx + 15, topY + 4);
+    ctx.lineTo(bx + 4, topY + 15);
+    ctx.closePath();
+    ctx.fill();
 
     // question mark
     ctx.font = "bold 20px monospace";
     ctx.textAlign = "center";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = BOX_DEEP_RED;
+    ctx.strokeText("?", b.x, topY + 20);
     ctx.fillStyle = "#ffffff";
-    ctx.fillText("?", b.x, by - hgt - lift + 20);
+    ctx.fillText("?", b.x, topY + 20);
   }
 
   function drawMine(m) {
@@ -971,15 +990,16 @@ const Game = (function () {
       }
     });
 
-    // kill feed (top right, inside the arena)
+    // kill feed (top left, right below the lives list)
     ctx.font = "bold 12px monospace";
-    ctx.textAlign = "right";
+    ctx.textAlign = "left";
+    const feedTop = ARENA.y + 24 + bots.length * 18 + 14;
     let row = 0;
     for (let i = feed.length - 1; i >= 0 && row < 4; i--) {
       const age = gameTime - feed[i].born;
       if (age > 5) continue;
       ctx.globalAlpha = Math.min(1, (5 - age) / 1);
-      outlinedText(feed[i].text, ARENA.x + ARENA.w - 10, ARENA.y + 24 + row * 18, "#101010");
+      outlinedText(feed[i].text, ARENA.x + 10, feedTop + row * 18, "#101010");
       row++;
     }
     ctx.globalAlpha = 1;
@@ -1032,7 +1052,7 @@ const Game = (function () {
     }
     ctx.fillStyle = "#5d5d5a";
     ctx.font = "16px monospace";
-    ctx.fillText("Knock-outs: " + (player.kills || 0) + "   ·   Difficulty: " + settings.difficulty, cx, 275);
+    ctx.fillText("Knock-outs: " + (player.kills || 0) + "   ·   " + settings.difficulty + " · " + bots.length + (bots.length === 1 ? " bot" : " bots"), cx, 275);
 
     // Play Again button
     ctx.fillStyle = "#d71921";
@@ -1515,35 +1535,85 @@ const Game = (function () {
   }
 
   // ---------- Bots ----------
-  function makeBot(index, color, difficultyName) {
-    const d = DIFFICULTY[difficultyName] || DIFFICULTY.medium;
-    const start = BOT_STARTS[index];
-    const bot = makeKart(start.x, start.y, start.angle, color, BOT_NAMES[index]);
-    bot.isBot = true;
-    bot.speedMul = d.speed;
-    bot.turnMul = d.turn;
-    bot.ai = {
-      diff: d,
+  function clamp01(v) {
+    return Math.max(0, Math.min(1, v));
+  }
+
+  // Turns one "skill" number into everything a bot needs
+  function botParams(skill, focus) {
+    return {
+      skill: skill,
+      speed: 0.60 + 0.40 * skill,            // how fast it drives compared with you
+      turn: 0.75 + 0.40 * skill,             // how sharply it steers
+      aim: Math.max(0.08, 0.42 - 0.31 * skill),         // how exactly it must aim before firing (smaller = better)
+      aimNoise: Math.max(0.02, 0.55 - 0.50 * skill),    // how much it wobbles while chasing
+      reaction: Math.max(0.2, 1.6 - 1.3 * skill),       // seconds it waits before using a power-up
+      lead: clamp01((skill - 0.4) / 0.5),    // aims where you WILL be, not where you are
+      dodge: clamp01((skill - 0.35) / 0.5),  // chance to notice rockets and mines and dodge them
+      focus: focus                           // how often it goes after you instead of other bots
+    };
+  }
+
+  function newAI(params) {
+    return {
+      diff: params,
       target: { x: ARENA.x + ARENA.w / 2, y: ARENA.y + ARENA.h / 2 },
       retarget: 0,
       noise: 0,
       stuck: 0,
       reverse: 0,
       reverseTurn: 1,
-      hold: 0
+      hold: 0,
+      chasePlayer: false,
+      reroll: 0,
+      noticed: new WeakMap()
     };
+  }
+
+  function makeBot(index, color, level, count) {
+    const params = botParams(SKILL[level][count - 1], FOCUS[level]);
+    const start = BOT_STARTS[count][index];
+    const bot = makeKart(start.x, start.y, start.angle, color, BOT_NAMES[index]);
+    bot.isBot = true;
+    bot.speedMul = params.speed;
+    bot.turnMul = params.turn;
+    bot.ai = newAI(params);
     return bot;
+  }
+
+  function enemiesOf(k) {
+    return karts.filter(function (o) {
+      return o !== k && !o.out && !o.eaten;
+    });
   }
 
   function nearestEnemy(k) {
     let best = null;
     let bestDist = 1e9;
-    karts.forEach(function (o) {
-      if (o === k || o.out || o.eaten) return;
+    enemiesOf(k).forEach(function (o) {
       const d = Math.hypot(o.x - k.x, o.y - k.y);
       if (d < bestDist) { bestDist = d; best = o; }
     });
     return best;
+  }
+
+  // Who does this bot go after? Sometimes you, sometimes whoever is closest.
+  function pickFoe(k) {
+    const ai = k.ai;
+    if (ai.chasePlayer && player !== k && !player.out && !player.eaten) return player;
+    return nearestEnemy(k);
+  }
+
+  // Where will this kart be soon? (strong bots aim there instead of where you are now)
+  function predictPos(o, dist, lead) {
+    if (!lead) return { x: o.x, y: o.y };
+    const frames = dist / ROCKET_SPEED;
+    const x = o.x + Math.cos(o.angle) * o.speed * frames * lead;
+    const y = o.y + Math.sin(o.angle) * o.speed * frames * lead;
+    return {
+      x: Math.max(ARENA.x, Math.min(ARENA.x + ARENA.w, x)),
+      y: Math.max(ARENA.y, Math.min(ARENA.y + ARENA.h, y))
+    };
   }
 
   // Is this spot too close to a wall or a block for a kart to drive through?
@@ -1554,6 +1624,16 @@ const Game = (function () {
     for (let i = 0; i < OBSTACLES.length; i++) {
       const o = OBSTACLES[i];
       if (px > o.x - margin && px < o.x + o.w + margin && py > o.y - margin && py < o.y + o.h + margin) return true;
+    }
+    return false;
+  }
+
+  // Is a mine lying close to this spot? (good bots drive around mines)
+  function mineNear(px, py, k) {
+    for (let i = 0; i < mines.length; i++) {
+      const m = mines[i];
+      if (m.owner === k && gameTime - m.born < 1.5) continue;
+      if (Math.hypot(px - m.x, py - m.y) < 34) return true;
     }
     return false;
   }
@@ -1573,14 +1653,35 @@ const Game = (function () {
     return false;
   }
 
+  // Is a rocket flying straight at this kart?
+  function incomingRocket(k) {
+    let found = null;
+    for (let i = 0; i < rockets.length; i++) {
+      const r = rockets[i];
+      if (r.owner === k) continue;
+      const dx = k.x - r.x;
+      const dy = k.y - r.y;
+      const dirX = Math.cos(r.angle);
+      const dirY = Math.sin(r.angle);
+      const along = dx * dirX + dy * dirY;      // how far ahead of the rocket we are
+      if (along < 20 || along > 260) continue;
+      const side = dirX * dy - dirY * dx;       // how far to the side of its path we are
+      if (Math.abs(side) > 36) continue;
+      if (!found || along < found.along) found = { r: r, along: along, side: side };
+    }
+    return found;
+  }
+
   // Decide what the bot is heading for: a box, an enemy, or just a wander spot
   function botChooseTarget(k) {
     const ai = k.ai;
-    const foe = nearestEnemy(k);
 
-    if (k.beast > 0 && foe) {
-      ai.target = { kart: foe };
-      return;
+    if (k.beast > 0) {
+      const prey = nearestEnemy(k);
+      if (prey) {
+        ai.target = { kart: prey };
+        return;
+      }
     }
 
     if (!k.powerup) {
@@ -1597,6 +1698,7 @@ const Game = (function () {
       }
     }
 
+    const foe = pickFoe(k);
     if (foe) {
       ai.target = { kart: foe };
       return;
@@ -1613,22 +1715,40 @@ const Game = (function () {
     const ai = k.ai;
     const d = ai.diff;
     if (!k.powerup || ai.hold < d.reaction) return;
-    const foe = nearestEnemy(k);
-    if (!foe) return;
-
-    const dist = Math.hypot(foe.x - k.x, foe.y - k.y);
-    const toFoe = Math.atan2(foe.y - k.y, foe.x - k.x);
-    const aimOff = Math.abs(angleDiff(toFoe, k.angle));
+    const foes = enemiesOf(k);
+    if (foes.length === 0) return;
+    const near = nearestEnemy(k);
+    const nearDist = Math.hypot(near.x - k.x, near.y - k.y);
 
     if (k.powerup === "rocket") {
-      if (dist > 70 && dist < 400 && aimOff < d.aim && !lineBlocked(k.x, k.y, foe.x, foe.y)) usePowerup(k);
+      for (let i = 0; i < foes.length; i++) {
+        const o = foes[i];
+        if (o.beast > 0) continue;   // rockets do nothing to a beast
+        const dist = Math.hypot(o.x - k.x, o.y - k.y);
+        if (dist < 70 || dist > 420) continue;
+        const spot = predictPos(o, dist, d.lead);
+        const aimOff = Math.abs(angleDiff(Math.atan2(spot.y - k.y, spot.x - k.x), k.angle));
+        if (aimOff < d.aim && !lineBlocked(k.x, k.y, spot.x, spot.y)) {
+          usePowerup(k);
+          return;
+        }
+      }
+      if (ai.hold > 9) usePowerup(k);   // do not carry it around forever
     } else if (k.powerup === "mine") {
-      const behind = Math.abs(angleDiff(toFoe + Math.PI, k.angle)) < 0.7;
-      if ((dist < 170 && behind) || ai.hold > 7) usePowerup(k);
+      for (let i = 0; i < foes.length; i++) {
+        const o = foes[i];
+        const dist = Math.hypot(o.x - k.x, o.y - k.y);
+        const behind = Math.abs(angleDiff(Math.atan2(o.y - k.y, o.x - k.x) + Math.PI, k.angle)) < 0.7;
+        if (dist < 170 && behind) {
+          usePowerup(k);
+          return;
+        }
+      }
+      if (ai.hold > 7) usePowerup(k);
     } else if (k.powerup === "shield") {
-      if (dist < 220 || k.hp < 60 || ai.hold > 6) usePowerup(k);
+      if (nearDist < 220 || k.hp < 60 || ai.hold > 6) usePowerup(k);
     } else if (k.powerup === "beast") {
-      if (dist < 300 || ai.hold > 6) usePowerup(k);
+      if (nearDist < 300 || ai.hold > 6) usePowerup(k);
     }
   }
 
@@ -1649,6 +1769,13 @@ const Game = (function () {
 
     if (k.powerup) ai.hold += sec; else ai.hold = 0;
 
+    // every few seconds, decide whether to go after you or after whoever is closest
+    ai.reroll -= sec;
+    if (ai.reroll <= 0) {
+      ai.chasePlayer = Math.random() < d.focus;
+      ai.reroll = 3 + Math.random() * 3;
+    }
+
     // pick a new target every so often
     ai.retarget -= sec;
     const t0 = ai.target;
@@ -1659,13 +1786,36 @@ const Game = (function () {
     }
 
     const t = ai.target;
-    const tx = t.kart ? t.kart.x : t.x;
-    const ty = t.kart ? t.kart.y : t.y;
+    let tx = t.x;
+    let ty = t.y;
+    if (t.kart) {
+      const spot = predictPos(t.kart, Math.hypot(t.kart.x - k.x, t.kart.y - k.y), d.lead * 0.6);
+      tx = spot.x;
+      ty = spot.y;
+    }
     let steer = angleDiff(Math.atan2(ty - k.y, tx - k.x) + ai.noise, k.angle);
 
-    // look ahead for walls and blocks, and steer around them
+    // strong bots dodge incoming rockets
+    let dodging = false;
+    if (d.dodge > 0.25) {
+      const threat = incomingRocket(k);
+      if (threat) {
+        if (!ai.noticed.has(threat.r)) ai.noticed.set(threat.r, Math.random() < d.dodge);
+        if (ai.noticed.get(threat.r)) {
+          const sideSign = threat.side >= 0 ? 1 : -1;
+          steer = angleDiff(threat.r.angle + sideSign * Math.PI / 2, k.angle);
+          dodging = true;
+          if (k.powerup === "shield" && d.dodge > 0.5 && threat.along < 170) usePowerup(k);
+        }
+      }
+    }
+
+    // look ahead for walls, blocks and (for good bots) mines, and steer around them
+    const avoidMines = d.dodge > 0.3;
     const probe = function (a, dist) {
-      return botBlocked(k.x + Math.cos(a) * dist, k.y + Math.sin(a) * dist);
+      const px = k.x + Math.cos(a) * dist;
+      const py = k.y + Math.sin(a) * dist;
+      return botBlocked(px, py) || (avoidMines && mineNear(px, py, k));
     };
     const centerBlocked = probe(k.angle, 70) || probe(k.angle, 40);
     const leftBlocked = probe(k.angle - 0.6, 60);
@@ -1686,7 +1836,7 @@ const Game = (function () {
     else if (steer < -0.08) input.left = true;
 
     input.up = true;
-    if (Math.abs(steer) > 1.4 && k.speed > 2.5) input.up = false;
+    if (!dodging && Math.abs(steer) > 1.4 && k.speed > 2.5) input.up = false;
 
     // not getting anywhere? reverse for a moment
     if (Math.abs(k.speed) < 0.6) ai.stuck += sec; else ai.stuck = 0;
@@ -1716,17 +1866,19 @@ const Game = (function () {
     player = makeKart(130, ARENA.y + ARENA.h / 2, 0, settings.kartColor, settings.name);
     karts = [player];
 
-    // the bots get kart colors different from yours
+    // how many bots, and how tough (the bots get kart colors different from yours)
+    const level = SKILL[settings.difficulty] ? settings.difficulty : "medium";
+    const count = Math.max(1, Math.min(3, parseInt(settings.botCount, 10) || 2));
     const colors = BOT_COLORS.filter(function (c) { return c !== settings.kartColor; });
     bots = [];
-    for (let i = 0; i < BOT_STARTS.length; i++) {
-      const bot = makeBot(i, colors[i], settings.difficulty);
+    for (let i = 0; i < count; i++) {
+      const bot = makeBot(i, colors[i], level, count);
       bots.push(bot);
       karts.push(bot);
     }
 
-    boxes = BOX_SPOTS.map(function (s, i) {
-      return { x: s.x, y: s.y, active: true, respawnAt: 0, style: BOX_STYLES[i % BOX_STYLES.length] };
+    boxes = BOX_SPOTS.map(function (s) {
+      return { x: s.x, y: s.y, active: true, respawnAt: 0 };
     });
   }
 

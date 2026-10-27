@@ -6,9 +6,9 @@ const KARTS = {
 };
 
 const DIFFICULTY_LABELS = {
-  easy:   "Easy bots",
-  medium: "Medium bots",
-  hard:   "Hard bots"
+  easy:   "Easy",
+  medium: "Medium",
+  hard:   "Hard"
 };
 
 // The chosen settings are stored here so the game can use them.
@@ -76,18 +76,21 @@ startButton.addEventListener("click", function () {
   const name = nameInput.value.trim() || "Player";
   const kartKey = document.querySelector('input[name="kart"]:checked').value;
   const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
+  const botCount = parseInt(document.querySelector('input[name="bots"]:checked').value, 10);
 
   window.gameSettings = {
     name: name,
     kartColor: KARTS[kartKey].color,
     kartKey: kartKey,
-    difficulty: difficulty
+    difficulty: difficulty,
+    botCount: botCount
   };
 
   document.getElementById("match-name").textContent = name;
   document.getElementById("match-swatch").style.background = KARTS[kartKey].color;
   document.getElementById("match-kart").textContent = KARTS[kartKey].label;
-  document.getElementById("match-difficulty").textContent = DIFFICULTY_LABELS[difficulty];
+  document.getElementById("match-difficulty").textContent =
+    DIFFICULTY_LABELS[difficulty] + " · " + botCount + (botCount === 1 ? " bot" : " bots");
 
   setupScreen.classList.add("hidden");
   matchScreen.classList.remove("hidden");
