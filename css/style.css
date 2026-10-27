@@ -280,3 +280,6 @@ button.btn { font-family: inherit; cursor: pointer; }
   border-radius: 0;
   box-shadow: none;
 }
+
+/* ---------- Beast tile on the How to Play page ---------- */
+.mini.mini-beast { background: #101010; color: #f2f1ee; border-color: #d71921; }
