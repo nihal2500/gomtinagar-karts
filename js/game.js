@@ -193,7 +193,7 @@ const Game = (function () {
     ]
   };
   const BOT_NAMES = ["Zippy", "Bolt", "Nova"];
-  const BOT_COLORS = ["#d71921", "#3a3a3a", "#5aa9f0", "#f2a900", "#2ea36b"];
+    const BOT_COLORS = ["#d71921", "#5aa9f0", "#4fcf8d", "#f4c20d", "#3a3a3a"];
 
   // ---------- How tough the bots are ----------
   // SKILL says how good each single bot is: 0 = very weak, 1 = a very strong player.

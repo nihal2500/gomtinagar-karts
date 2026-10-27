@@ -32,7 +32,7 @@
     <section id="setup">
       <p class="eyebrow">Get ready</p>
       <h1>Set up your match</h1>
-      <p class="lead">Pick a name, a kart color and how tough the bots should be.</p>
+      <p class="lead">Pick a name, a kart color, how tough the bots are and how many you want to face.</p>
 
       <div class="panel">
         <h2>1. Your name</h2>
@@ -43,17 +43,25 @@
       <div class="panel">
         <h2>2. Kart color</h2>
         <div class="choice-row">
-          <label class="choice">
+          <label class="choice" style="--ac:#d71921;--tint:#ffd9db">
             <input type="radio" name="kart" value="red" checked>
             <span class="choice-body"><span class="swatch" style="background:#d71921"></span>Signal Red</span>
           </label>
-          <label class="choice">
-            <input type="radio" name="kart" value="graphite">
-            <span class="choice-body"><span class="swatch" style="background:#3a3a3a"></span>Graphite</span>
-          </label>
-          <label class="choice">
+          <label class="choice" style="--ac:#5aa9f0;--tint:#d4e8ff">
             <input type="radio" name="kart" value="sky">
             <span class="choice-body"><span class="swatch" style="background:#5aa9f0"></span>Sky Blue</span>
+          </label>
+          <label class="choice" style="--ac:#4fcf8d;--tint:#d3f2e2">
+            <input type="radio" name="kart" value="green">
+            <span class="choice-body"><span class="swatch" style="background:#4fcf8d"></span>Mint Green</span>
+          </label>
+          <label class="choice" style="--ac:#f4c20d;--tint:#fff0b8">
+            <input type="radio" name="kart" value="yellow">
+            <span class="choice-body"><span class="swatch" style="background:#f4c20d"></span>Sunny Yellow</span>
+          </label>
+          <label class="choice" style="--ac:#3a3a3a;--tint:#deddd8">
+            <input type="radio" name="kart" value="graphite">
+            <span class="choice-body"><span class="swatch" style="background:#3a3a3a"></span>Graphite</span>
           </label>
         </div>
       </div>
@@ -61,42 +69,45 @@
       <div class="panel">
         <h2>3. Bot difficulty</h2>
         <div class="choice-row">
-          <label class="choice">
+          <label class="choice choice-tile">
             <input type="radio" name="difficulty" value="easy">
-            <span class="choice-body choice-text"><strong>Easy</strong><small>Slow bots that miss a lot</small></span>
+            <span class="tile-body">Easy<span class="tile-dots"><i class="f"></i><i></i><i></i></span></span>
           </label>
-          <label class="choice">
+          <label class="choice choice-tile">
             <input type="radio" name="difficulty" value="medium" checked>
-            <span class="choice-body choice-text"><strong>Medium</strong><small>A fair, balanced fight</small></span>
+            <span class="tile-body">Medium<span class="tile-dots"><i class="f"></i><i class="f"></i><i></i></span></span>
           </label>
-          <label class="choice">
+          <label class="choice choice-tile">
             <input type="radio" name="difficulty" value="hard">
-            <span class="choice-body choice-text"><strong>Hard</strong><small>Fast bots that fire often</small></span>
+            <span class="tile-body">Hard<span class="tile-dots"><i class="f"></i><i class="f"></i><i class="f"></i></span></span>
           </label>
         </div>
+        <p class="note">Easy is a friendly warm-up, Medium is a real fight, and Hard is pro level.</p>
       </div>
-            <div class="panel">
+
+      <div class="panel">
         <h2>4. Number of bots</h2>
         <div class="choice-row">
-          <label class="choice">
+          <label class="choice choice-tile">
             <input type="radio" name="bots" value="1">
-            <span class="choice-body choice-text"><strong>1 bot</strong><small>A duel: one tougher opponent</small></span>
+            <span class="tile-body">1 bot<span class="tile-dots"><i class="f"></i><i></i><i></i></span></span>
           </label>
-          <label class="choice">
+          <label class="choice choice-tile">
             <input type="radio" name="bots" value="2" checked>
-            <span class="choice-body choice-text"><strong>2 bots</strong><small>A three-kart brawl</small></span>
+            <span class="tile-body">2 bots<span class="tile-dots"><i class="f"></i><i class="f"></i><i></i></span></span>
           </label>
-          <label class="choice">
+          <label class="choice choice-tile">
             <input type="radio" name="bots" value="3">
-            <span class="choice-body choice-text"><strong>3 bots</strong><small>Full chaos: four karts</small></span>
+            <span class="tile-body">3 bots<span class="tile-dots"><i class="f"></i><i class="f"></i><i class="f"></i></span></span>
           </label>
         </div>
         <p class="note">The more bots, the harder the match. Each bot is a little weaker when there are more of them, but together they are tougher.</p>
       </div>
+
       <button id="start-btn" class="btn btn-primary" type="button">Start Match</button>
     </section>
 
-    <!-- Screen 2: match ready (the arena arrives in Stage 5) -->
+    <!-- Screen 2: the match -->
     <section id="match" class="hidden">
       <p class="eyebrow">Match ready</p>
       <h1>Get set, <span id="match-name"></span></h1>
@@ -107,11 +118,11 @@
         <span class="chip">Lives: 3</span>
       </div>
 
-            <div id="game-wrap" class="game-wrap">
+      <div id="game-wrap" class="game-wrap">
         <canvas id="game-canvas" width="900" height="520"></canvas>
         <button id="fullscreen-btn" class="fs-btn" type="button">Fullscreen</button>
       </div>
-                    <p class="note">Drive with the arrow keys or W A S D, and press Space to use a power-up. Bots and lives are added in the next stage, so for now you are alone in the arena.</p>
+      <p class="note">Drive with the arrow keys or W A S D and press Space to use a power-up. Be the last kart standing.</p>
 
       <button id="back-btn" class="btn btn-ghost" type="button">Back to setup</button>
     </section>
@@ -123,7 +134,7 @@
     <p class="footer-note">A college project · Best played on a computer with a keyboard</p>
   </footer>
 
-    <script src="js/game.js"></script>
+  <script src="js/game.js"></script>
   <script src="js/play.js"></script>
 </body>
 </html>

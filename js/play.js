@@ -1,8 +1,10 @@
 // ---------- Information about the choices ----------
 const KARTS = {
-  red:      { label: "Signal Red", color: "#d71921" },
-  graphite: { label: "Graphite",   color: "#3a3a3a" },
-  sky:      { label: "Sky Blue",   color: "#5aa9f0" }
+  red:      { label: "Signal Red",   color: "#d71921" },
+  sky:      { label: "Sky Blue",     color: "#5aa9f0" },
+  green:    { label: "Mint Green",   color: "#4fcf8d" },
+  yellow:   { label: "Sunny Yellow", color: "#f4c20d" },
+  graphite: { label: "Graphite",     color: "#3a3a3a" }
 };
 
 const DIFFICULTY_LABELS = {
