@@ -299,6 +299,36 @@ button.btn { font-family: inherit; cursor: pointer; }
 .one-line .swatch { width: 18px; height: 18px; }
 @media (max-width: 840px) { .choice-row.one-line { flex-wrap: wrap; } }
 
-/* ---------- Little dots that show how many bots ---------- */
-.bot-dots { display: inline-flex; gap: 3px; }
-.bot-dots i { display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
+/* ---------- Difficulty and bots follow the kart color ---------- */
+.follow .choice input:checked + .choice-body {
+  background: #fffaf0;
+  box-shadow: 0 4px 0 var(--kart-ac, var(--red));
+}
+.bot-dots { display: inline-flex; gap: 4px; }
+.bot-dots i {
+  display: block;
+  box-sizing: border-box;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: transparent;
+}
+.choice input:checked + .choice-body .bot-dots i { background: var(--kart-ac, var(--red)); }
+
+/* ---------- Difficulty and bots follow the kart color ---------- */
+.follow .choice input:checked + .choice-body {
+  background: #fffaf0;
+  box-shadow: 0 4px 0 var(--kart-ac, var(--red));
+}
+.bot-dots { display: inline-flex; gap: 4px; }
+.bot-dots i {
+  display: block;
+  box-sizing: border-box;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: transparent;
+}
+.choice input:checked + .choice-body .bot-dots i { background: var(--kart-ac, var(--red)); }

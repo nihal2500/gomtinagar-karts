@@ -25,6 +25,18 @@ const backButton = document.getElementById("back-btn");
 const gameWrap = document.getElementById("game-wrap");
 const fullscreenButton = document.getElementById("fullscreen-btn");
 
+
+// ---------- The difficulty and bots buttons use the color of the kart you picked ----------
+function applyKartColor() {
+  const kartKey = document.querySelector('input[name="kart"]:checked').value;
+  setupScreen.style.setProperty("--kart-ac", KARTS[kartKey].color);
+}
+
+document.querySelectorAll('input[name="kart"]').forEach(function (radio) {
+  radio.addEventListener("change", applyKartColor);
+});
+applyKartColor();
+
 // ---------- Fullscreen ----------
 function isFullscreen() {
   return document.fullscreenElement || document.webkitFullscreenElement;
