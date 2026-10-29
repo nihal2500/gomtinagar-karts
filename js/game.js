@@ -193,7 +193,7 @@ const Game = (function () {
     ]
   };
   const BOT_NAMES = ["Zippy", "Bolt", "Nova"];
-    const BOT_COLORS = ["#d71921", "#5aa9f0", "#4fcf8d", "#f4c20d", "#3a3a3a"];
+  const BOT_COLORS = ["#d71921", "#5aa9f0", "#4fcf8d", "#f4c20d", "#3a3a3a"];
 
   // ---------- How tough the bots are ----------
   // SKILL says how good each single bot is: 0 = very weak, 1 = a very strong player.
@@ -231,8 +231,8 @@ const Game = (function () {
   const ROCKET_DAMAGE = 34;     // three rockets together = 102 damage
   const MINE_DAMAGE = 60;
   const MINE_LIFETIME = 6;      // seconds before a mine disappears
-  const SHIELD_TIME = 6;        // seconds
-  const BEAST_TIME = 5.5;       // seconds
+  const SHIELD_TIME = 5;        // seconds
+  const BEAST_TIME = 3;         // seconds
   const EAT_TIME = 0.55;        // seconds the "eating" takes
   const MAX_HP = 100;
   const START_LIVES = 3;
@@ -1386,7 +1386,7 @@ const Game = (function () {
       if (b.beast <= 0 || b.eating || b.eaten || b.out) return;
       for (let i = 0; i < karts.length; i++) {
         const v = karts[i];
-        if (v === b || v.out || v.eaten || v.beast > 0 || v.invuln > 0) continue;
+        if (v === b || v.out || v.eaten || v.beast > 0 || v.invuln > 0 || v.shield > 0) continue;  // a shield protects against everything
         if (Math.hypot(v.x - b.x, v.y - b.y) < KART_RADIUS * 2) {
           v.eaten = { by: b, t: 0 };
           b.eating = v;
@@ -1597,6 +1597,18 @@ const Game = (function () {
     return best;
   }
 
+  // The closest kart a beast can actually eat (a shield protects against everything)
+  function nearestPrey(k) {
+    let best = null;
+    let bestDist = 1e9;
+    enemiesOf(k).forEach(function (o) {
+      if (o.shield > 0 || o.beast > 0) return;
+      const d = Math.hypot(o.x - k.x, o.y - k.y);
+      if (d < bestDist) { bestDist = d; best = o; }
+    });
+    return best;
+  }
+
   // Who does this bot go after? Sometimes you, sometimes whoever is closest.
   function pickFoe(k) {
     const ai = k.ai;
@@ -1677,7 +1689,7 @@ const Game = (function () {
     const ai = k.ai;
 
     if (k.beast > 0) {
-      const prey = nearestEnemy(k);
+      const prey = nearestPrey(k) || nearestEnemy(k);
       if (prey) {
         ai.target = { kart: prey };
         return;
@@ -1748,7 +1760,9 @@ const Game = (function () {
     } else if (k.powerup === "shield") {
       if (nearDist < 220 || k.hp < 60 || ai.hold > 6) usePowerup(k);
     } else if (k.powerup === "beast") {
-      if (nearDist < 300 || ai.hold > 6) usePowerup(k);
+      const prey = nearestPrey(k);
+      const preyDist = prey ? Math.hypot(prey.x - k.x, prey.y - k.y) : 9999;
+      if (preyDist < 300 || ai.hold > 6) usePowerup(k);
     }
   }
 
