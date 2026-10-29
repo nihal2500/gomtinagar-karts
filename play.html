@@ -40,11 +40,11 @@
         <p class="note">Up to 12 characters. Leave it empty to play as "Player".</p>
       </div>
 
-      <div class="panel">
+      <div class="panel" id="panel-kart">
         <h2>2. Kart color</h2>
         <div class="choice-row one-line">
           <label class="choice" style="--ac:#d71921;--tint:#ffd9db">
-            <input type="radio" name="kart" value="red" checked>
+            <input type="radio" name="kart" value="red">
             <span class="choice-body"><span class="swatch" style="background:#d71921"></span>Signal Red</span>
           </label>
           <label class="choice" style="--ac:#5aa9f0;--tint:#d4e8ff">
@@ -66,7 +66,7 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel" id="panel-difficulty">
         <h2>3. Bot difficulty</h2>
         <div class="choice-row follow">
           <label class="choice">
@@ -74,7 +74,7 @@
             <span class="choice-body">Easy</span>
           </label>
           <label class="choice">
-            <input type="radio" name="difficulty" value="medium" checked>
+            <input type="radio" name="difficulty" value="medium">
             <span class="choice-body">Medium</span>
           </label>
           <label class="choice">
@@ -85,7 +85,7 @@
         <p class="note">Easy is a friendly warm-up, Medium is a real fight, and Hard is pro level.</p>
       </div>
 
-      <div class="panel">
+      <div class="panel" id="panel-bots">
         <h2>4. Number of bots</h2>
         <div class="choice-row follow">
           <label class="choice">
@@ -93,7 +93,7 @@
             <span class="choice-body"><span class="bot-dots"><i></i></span>1 bot</span>
           </label>
           <label class="choice">
-            <input type="radio" name="bots" value="2" checked>
+            <input type="radio" name="bots" value="2">
             <span class="choice-body"><span class="bot-dots"><i></i><i></i></span>2 bots</span>
           </label>
           <label class="choice">
@@ -104,6 +104,7 @@
         <p class="note">The more bots, the harder the match. Each bot is a little weaker when there are more of them, but together they are tougher.</p>
       </div>
 
+      <p id="setup-error" class="setup-error hidden"></p>
       <button id="start-btn" class="btn btn-primary" type="button">Start Match</button>
     </section>
 
