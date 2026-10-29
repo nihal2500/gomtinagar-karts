@@ -302,7 +302,7 @@ button.btn { font-family: inherit; cursor: pointer; }
 /* ---------- Difficulty and bots follow the kart color ---------- */
 .follow .choice input:checked + .choice-body {
   background: #fffaf0;
-  box-shadow: 0 4px 0 var(--kart-ac, var(--red));
+  box-shadow: 0 4px 0 var(--kart-ac, var(--ink));
 }
 .bot-dots { display: inline-flex; gap: 4px; }
 .bot-dots i {
@@ -314,21 +314,14 @@ button.btn { font-family: inherit; cursor: pointer; }
   border-radius: 50%;
   background: transparent;
 }
-.choice input:checked + .choice-body .bot-dots i { background: var(--kart-ac, var(--red)); }
+.choice input:checked + .choice-body .bot-dots i { background: var(--kart-ac, var(--ink)); }
 
-/* ---------- Difficulty and bots follow the kart color ---------- */
-.follow .choice input:checked + .choice-body {
-  background: #fffaf0;
-  box-shadow: 0 4px 0 var(--kart-ac, var(--red));
-}
-.bot-dots { display: inline-flex; gap: 4px; }
-.bot-dots i {
-  display: block;
-  box-sizing: border-box;
-  width: 9px;
-  height: 9px;
-  border: 1.5px solid var(--ink);
-  border-radius: 50%;
-  background: transparent;
-}
-.choice input:checked + .choice-body .bot-dots i { background: var(--kart-ac, var(--red)); }
+/* ---------- Setup page: reminder when something is not chosen yet ---------- */
+.panel.missing { border-color: var(--red); }
+.setup-error { color: var(--red); font-weight: 700; margin: 0 0 14px; }
+
+/* ---------- Power-up tiles on the How to Play page ---------- */
+.mini.mini-rocket { background: linear-gradient(135deg, #c4161c, #ee6a10); color: #ffffff; border-color: #8f0e14; }
+.mini.mini-mine { background: #c9c7c0; color: #101010; border-color: #3a3a3a; }
+.mini.mini-shield { background: #fffaf0; border-color: #5aa9f0; box-shadow: 0 4px 0 #5aa9f0; }
+.mini.mini-shield h3 { color: #2f7fd1; }
