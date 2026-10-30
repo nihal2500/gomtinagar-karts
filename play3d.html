@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Test | Gomtinagar Karts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@100..900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <nav class="nav">
+      <a class="brand" href="index.html">
+        <span class="brand-dot"></span>
+        <span class="brand-name">Gomtinagar Karts</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="play.html">Play</a></li>
+        <li><a href="how-to-play.html">How to Play</a></li>
+        <li><a href="about.html">About</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="page">
+    <p class="eyebrow">3D test · Stage A</p>
+    <h1>The 3D arena</h1>
+    <p class="lead">A first look at the new arena in 3D, with taller walls, ramps and extra obstacles. It circles slowly on its own.</p>
+
+    <div id="scene-wrap" class="scene-wrap">
+      <div id="scene3d" class="scene3d"></div>
+      <div id="scene-fps" class="scene-fps">FPS</div>
+      <p id="scene-message" class="scene-message hidden"></p>
+      <button id="fullscreen-btn" class="fs-btn" type="button">Fullscreen</button>
+    </div>
+    <p class="note">Look around: left and right arrows turn the view, up and down arrows zoom, Space pauses the turning, and F opens fullscreen.</p>
+  </main>
+
+  <footer class="site-footer">
+    <p class="footer-brand">Gomtinagar Karts</p>
+    <p class="footer-note">Best played on a computer with a keyboard</p>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/arena3d.js"></script>
+  <script src="js/scene3d.js"></script>
+</body>
+</html>
